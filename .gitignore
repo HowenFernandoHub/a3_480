@@ -1,0 +1,12 @@
+# Object files
+*.o
+
+# Precompiled Headers
+*.gch
+
+# Executable
+*.out
+pagingwithtlb
+
+# TXT FIles
+*.txt
