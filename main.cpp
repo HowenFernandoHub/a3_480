@@ -122,13 +122,19 @@ int main(int argc, char **argv)
     // this might all move to readTraceFile() method
     FILE* traceF = readTraceFile(argc, argv);
     p2AddrTr trace;
-    long unsigned int virtAddr = 0;
+    unsigned long int virtAddr = 0;
+    unsigned long int mask = 0xffff0000000;
+    unsigned long int page;
 
     while (!feof(traceF)) {
         if(NextAddress(traceF, &trace))
         {
             virtAddr = trace.addr;
-            std::cout << virtAddr << std::endl;
+            page = virtAddr & mask;     // bit mask testing
+            page = page >> 28;          // bit mask shifting
+            printf("%0lx\n", page);
+
+
         }
     }
 

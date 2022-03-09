@@ -3,9 +3,11 @@
 #define LEVEL
 
 
-class level
+class Level
 {
     public:
+        Level* nextLevel[1];
+        int currDepth;
         
 
 
