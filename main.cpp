@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "tracereader.h"
+#include "pageTable.hpp"
 
 
 void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char *oFlag)
@@ -119,6 +119,12 @@ int main(int argc, char **argv)
 
     processCmdLnArgs(argc, argv, &nFlag, &cFlag, oFlag);
 
+    int numLevels = (argc - 1) - optind;
+
+    PageTable pTable();
+
+    // exit(0);
+
     // this might all move to readTraceFile() method
     FILE* traceF = readTraceFile(argc, argv);
     p2AddrTr trace;
@@ -133,8 +139,6 @@ int main(int argc, char **argv)
             page = virtAddr & mask;     // bit mask testing
             page = page >> 28;          // bit mask shifting
             printf("%0lx\n", page);
-
-
         }
     }
 

@@ -3,11 +3,14 @@
 #define LEVEL
 
 
+
 class Level
 {
     public:
-        Level* nextLevel[1];
+        Level();
+        Level* nextLevel;        // FIXME: use new in constructor
         int currDepth;
+        void* pTable;
         
 
 

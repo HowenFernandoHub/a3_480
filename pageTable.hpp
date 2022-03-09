@@ -4,19 +4,19 @@
 #define PAGETABLE
 
 #include "level.hpp"
+#include "tracereader.h"
 
 
 class PageTable
 {
     public:
-        PageTable(int);
+        PageTable(int lvCount = 1);
+        Level* rootLevel;
         int levelCount;
-        char bitMask[0];        // FIXME: Me dumb can't figure out
-        char bitShift[0];
-        int entryCount[0];
-
-
-
+        long unsigned int *bitMask;        // make sure to use new
+        long unsigned int *bitShift;       // make sure to use new
+        int *entryCount;
+        unsigned int virtualAddressToPageNum(unsigned int, unsigned int, unsigned int);
 
 };
 
