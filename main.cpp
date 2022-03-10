@@ -6,6 +6,8 @@
 #include "math.h"
 #include "pageTable.hpp"
 
+#define MEMORY_SPACE_SIZE 32
+
 
 void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFlag)
 {
@@ -103,12 +105,12 @@ unsigned long int ReverseTheBits(unsigned long int num)
 }
 
 
-void fillMaskArr(unsigned long int maskArr[], int bitsInArr[], int numLevels)
+void fillMaskArr(unsigned long int maskArr[], int bitsInLvl[], int numLevels)
 {
     unsigned long int mask;
     for (int i = 0; i < numLevels; i++) {
         mask = 0;
-        for (int j = 0; j < bitsInArr[i]; j++) {
+        for (int j = 0; j < bitsInLvl[i]; j++) {
             mask += pow(2, j);
         }
         mask = ReverseTheBits(mask);
@@ -117,9 +119,13 @@ void fillMaskArr(unsigned long int maskArr[], int bitsInArr[], int numLevels)
 }
 
 
-void fillShiftArr(int shiftArr[], int bitsInArr[], int  numLevels)
+void fillShiftArr(int shiftArr[], int bitsInLvl[], int  numLevels)
 {
-    // calculate shift arr values
+    int shift = MEMORY_SPACE_SIZE;
+    for (int i = 0; i < numLevels; i++) {
+        shift = shift - bitsInLvl[i];
+        shiftArr[i] = shift;
+    }
 }
 
 
@@ -172,9 +178,15 @@ int main(int argc, char **argv)
         printf("%0x\n", bitsInLevel[i]);
     }
 
-    int maskArr[numLevels];
-    fillShiftArr(maskArr, bitsInLevel, numLevels);
+    int shiftArr[numLevels];
+    fillShiftArr(shiftArr, bitsInLevel, numLevels);
 
+    for (int i = 0; i < numLevels; i++) {
+        printf("%0d\n", shiftArr[i]);
+        printf("%0x\n", bitsInLevel[i]);
+    }
+
+    exit(0);
 
 
     // this might all move to readTraceFile() method
