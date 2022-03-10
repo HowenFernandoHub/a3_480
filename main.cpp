@@ -3,10 +3,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "math.h"
 #include "pageTable.hpp"
 
 
-void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char *oFlag)
+void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFlag)
 {
     // check that the minimum # of cmd-line args are given
     if (argc < 3)
@@ -35,7 +36,7 @@ void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char *oFla
                 break;
             case 'o':
                 // std::cout << "had n flag" << std::endl;
-                oFlag = optarg;
+                *oFlag = optarg;
                 break;
             default:
                 exit(EXIT_FAILURE);
@@ -82,6 +83,45 @@ FILE* readTraceFile(int argc, char *argv[])
     return traceFile;
 }
 
+unsigned long int ReverseTheBits(unsigned long int num)
+{
+    int count = ((__SIZEOF_LONG__ * 8) -1); 
+    unsigned long int tmp = num;         //  Assign num to the tmp 
+	     
+    num >>= 1; // shift num because LSB already assigned to tmp
+    
+    while(num)
+    {
+       tmp <<= 1;  //shift the tmp because alread have the LSB of num  
+       tmp |= num & 1; // putting the set bits of num
+       num >>= 1; 
+       count--;
+    }
+    
+    tmp <<= count; //when num become zero shift tmp from the remaining counts
+    return tmp;
+}
+
+
+void fillMaskArr(unsigned long int maskArr[], int bitsInArr[], int numLevels)
+{
+    unsigned long int mask;
+    for (int i = 0; i < numLevels; i++) {
+        mask = 0;
+        for (int j = 0; j < bitsInArr[i]; j++) {
+            mask += pow(2, j);
+        }
+        mask = ReverseTheBits(mask);
+        maskArr[i] = mask;
+    }
+}
+
+
+void fillShiftArr(int shiftArr[], int bitsInArr[], int  numLevels)
+{
+    // calculate shift arr values
+}
+
 
 int main(int argc, char **argv)
 {
@@ -90,14 +130,11 @@ int main(int argc, char **argv)
     char *oFlag;
 
     /**
-     * PROCESS COMMAND LINE ARGS
-     *  - Error handling for optional args
-     *  - Error handling for mandatory args (especially the bits stuff)
-     *  - Figure out how to handle Trace Files
      * 
-     * IMPLEMENT LEVEL
+     * IMPLEMENT LEVEL (Junior)
      * 
-     * IMPLEMENT PAGE TABLE
+     * 
+     * IMPLEMENT PAGE TABLE (Nathan does .cpp)
      *  - levelCount
      *  - bitmask[i]
      *  - bitShift[i]
@@ -110,20 +147,35 @@ int main(int argc, char **argv)
      *      - pointer to PageTable to access info
      *  - Map (struct/class)
      * 
-     * IMPLEMENT TLB
+     * IMPLEMENT MAP
      * 
      * INITIALIZE PAGE TABLE LVL 0
      *  - all nulls?
      */
 
 
-    processCmdLnArgs(argc, argv, &nFlag, &cFlag, oFlag);
+    processCmdLnArgs(argc, argv, &nFlag, &cFlag, &oFlag);
 
     int numLevels = (argc - 1) - optind;
 
-    PageTable pTable();
+    int bitsInLevel[numLevels];
 
-    // exit(0);
+    for (int i = 0; i < numLevels; i++) {
+        bitsInLevel[i] = atoi(argv[optind + i + 1]);
+    }
+
+    unsigned long int bitMask[numLevels];
+    fillMaskArr(bitMask, bitsInLevel, numLevels);
+
+    for (int i = 0; i < numLevels; i++) {
+        printf("%0lx\n", bitMask[i]);
+        printf("%0x\n", bitsInLevel[i]);
+    }
+
+    int maskArr[numLevels];
+    fillShiftArr(maskArr, bitsInLevel, numLevels);
+
+
 
     // this might all move to readTraceFile() method
     FILE* traceF = readTraceFile(argc, argv);

@@ -2,15 +2,17 @@
 #ifndef LEVEL
 #define LEVEL
 
+#include <stdlib.h>
+
 
 
 class Level
 {
     public:
-        Level();
+        Level(int, class PageTable*);
         Level* nextLevel;        // FIXME: use new in constructor
         int currDepth;
-        void* pTable;
+        class PageTable* pTable;
         
 
 
