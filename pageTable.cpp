@@ -11,7 +11,6 @@ PageTable::PageTable(int numLevels, int bitsInLevel[])
     fillMaskArr(maskArr, bitsInLevel, numLevels);
     fillShiftArr(shiftArr, bitsInLevel, numLevels);
     Level zero(0, this);    // 'this' is pointer to this PageTable
-    
 }
 
 void PageTable::fillEntryCountArr(int entryCountArr[], int bitsInLvl[], int numLvls)
@@ -71,6 +70,20 @@ void PageTable::fillShiftArr(int shiftArr[], int bitsInLvl[], int numLevels)
         shift = shift - bitsInLvl[i];
         shiftArr[i] = shift;
     }
+}
+
+unsigned int PageTable::virtualAddressToPageNum(unsigned int virtualAddress, unsigned int mask, unsigned int shift)
+{
+    // FIXME: Needs testing
+    unsigned int page;
+    page = page & mask;
+    page = page >> shift;
+    return page;
+}
+
+void PageTable::pageInsert(PageTable *pagetable, unsigned int virtualAddress, unsigned int frame)
+{
+    // FIXME: Finish implementing insert page
 }
 
 

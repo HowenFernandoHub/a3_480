@@ -6,10 +6,12 @@
 #ifdef __cplusplus
 /* C++ includes */
 #include <stdint.h>
+#include <fstream>
 #else
 /* C includes */
 #include <inttypes.h>
-#endif 
+#endif
+
 
 
 typedef struct BYUADDRESSTRACE

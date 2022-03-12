@@ -20,13 +20,15 @@ class PageTable
         long unsigned int *maskArr;        // make sure to use new
         int *shiftArr;       // make sure to use new
         int *entryCountArr;
+        unsigned int virtualAddressToPageNum(unsigned int, unsigned int, unsigned int);
+        void pageInsert(PageTable*, unsigned int, unsigned int);
+    private:
         void fillMaskArr(unsigned long int*, int*, int);
         void shiftMaskArr(unsigned long int*, int*, int);
         unsigned long int reverseBits(unsigned long int);
         void fillShiftArr(int*, int*, int);
         void fillEntryCountArr(int*, int*, int);
-        unsigned int virtualAddressToPageNum(unsigned int, unsigned int, unsigned int);
-
+        
 };
 
 

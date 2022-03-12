@@ -9,5 +9,6 @@ Level::Level(int depth=0, PageTable* tablePtr=NULL)
 
 void Level::setNextLevel()
 {
-
+    // IDEA:
+    //  - size of nextLevel determined by entryCount??? Ask Manan
 }
