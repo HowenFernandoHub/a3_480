@@ -13,9 +13,8 @@ class Level
         Level* nextLevel;        // FIXME: use new in constructor
         int currDepth;
         class PageTable* pTable;
+        void setNextLevel();
         
-
-
 
 
 };

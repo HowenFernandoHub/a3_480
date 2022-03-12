@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "math.h"
 #include "pageTable.hpp"
 
 #define MEMORY_SPACE_SIZE 32
@@ -104,6 +103,16 @@ unsigned long int ReverseTheBits(unsigned long int num)
     return tmp;
 }
 
+void shiftMaskArr(unsigned long int mask[], int bitsInLvl[], int numLevels)
+{
+    // shift mask arr
+    int shiftAmmount = 0;
+    for (int i = 1; i < numLevels; i++) {       // starts at 1 bc first mask doesn't need to shift
+        shiftAmmount += bitsInLvl[i - 1];
+        mask[i] = mask[i] >> shiftAmmount;
+    }
+}
+
 
 void fillMaskArr(unsigned long int maskArr[], int bitsInLvl[], int numLevels)
 {
@@ -116,15 +125,23 @@ void fillMaskArr(unsigned long int maskArr[], int bitsInLvl[], int numLevels)
         mask = ReverseTheBits(mask);
         maskArr[i] = mask;
     }
+    shiftMaskArr(maskArr, bitsInLvl, numLevels);
 }
 
 
-void fillShiftArr(int shiftArr[], int bitsInLvl[], int  numLevels)
+void fillShiftArr(int shiftArr[], int bitsInLvl[], int numLevels)
 {
     int shift = MEMORY_SPACE_SIZE;
     for (int i = 0; i < numLevels; i++) {
         shift = shift - bitsInLvl[i];
         shiftArr[i] = shift;
+    }
+}
+
+void fillEntryCountArr(int entryCountArr[], int bitsInLvl[], int numLvls)
+{
+    for (int i = 0; i < numLvls; i++) {
+        entryCountArr[i] = pow(2, bitsInLvl[i]);
     }
 }
 
@@ -161,32 +178,17 @@ int main(int argc, char **argv)
 
 
     processCmdLnArgs(argc, argv, &nFlag, &cFlag, &oFlag);
-
     int numLevels = (argc - 1) - optind;
-
     int bitsInLevel[numLevels];
+
 
     for (int i = 0; i < numLevels; i++) {
         bitsInLevel[i] = atoi(argv[optind + i + 1]);
     }
 
-    unsigned long int bitMask[numLevels];
-    fillMaskArr(bitMask, bitsInLevel, numLevels);
+    PageTable pTable(numLevels, bitsInLevel);
 
-    for (int i = 0; i < numLevels; i++) {
-        printf("%0lx\n", bitMask[i]);
-        printf("%0x\n", bitsInLevel[i]);
-    }
-
-    int shiftArr[numLevels];
-    fillShiftArr(shiftArr, bitsInLevel, numLevels);
-
-    for (int i = 0; i < numLevels; i++) {
-        printf("%0d\n", shiftArr[i]);
-        printf("%0x\n", bitsInLevel[i]);
-    }
-
-    exit(0);
+    // exit(0);
 
 
     // this might all move to readTraceFile() method
@@ -197,12 +199,13 @@ int main(int argc, char **argv)
     unsigned long int page;
 
     while (!feof(traceF)) {
-        if(NextAddress(traceF, &trace))
+        if(NextAddress(traceF, &trace))     // traceF: File handle from fOpen
         {
             virtAddr = trace.addr;
             page = virtAddr & mask;     // bit mask testing
+            printf("After masking: %0lx\n", page);
             page = page >> 28;          // bit mask shifting
-            printf("%0lx\n", page);
+            printf("After shifting: %0lx\n", page);
         }
     }
 
