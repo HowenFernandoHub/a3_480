@@ -10,7 +10,8 @@ PageTable::PageTable(int numLevels, int bitsInLevel[])
     fillEntryCountArr(entryCountArr, bitsInLevel, levelCount);
     fillMaskArr(maskArr, bitsInLevel, numLevels);
     fillShiftArr(shiftArr, bitsInLevel, numLevels);
-    Level zero(0, this);    // 'this' is pointer to this PageTable
+    Level zero(0, this);        // 'this' is pointer to this PageTable
+    zero.setNextLevelNull();    // set zeroeth levels netLevel[] to all nulls
 }
 
 void PageTable::fillEntryCountArr(int entryCountArr[], int bitsInLvl[], int numLvls)

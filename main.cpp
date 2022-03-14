@@ -143,15 +143,25 @@ int main(int argc, char **argv)
     unsigned int mask = pTable.maskArr[0];
     unsigned int page;
 
+    virtAddr = 0x0041f760;
+
+    printf("Address: %x\n", virtAddr);
+
+    for (int i = 0; i < numLevels; i++) {
+        page = virtAddr & pTable.maskArr[i];
+        page = page >> pTable.shiftArr[i];
+        printf("Page %d: %x\n", i, page);
+    }
+
     while (!feof(traceF)) {
         if(NextAddress(traceF, &trace))     // traceF: File handle from fOpen
         {
-            virtAddr = trace.addr;
-            printf("Addr Before: %0x\n", virtAddr);
-            page = virtAddr & mask;     // bit mask testing
-            printf("After masking: %0x\n", page);
-            page = page >> pTable.shiftArr[0];          // bit mask shifting
-            printf("After shifting: %0x\n", page);
+            // virtAddr = trace.addr;
+            // printf("Addr Before: %0x\n", virtAddr);
+            // page = virtAddr & mask;     // bit mask testing
+            // printf("After masking: %0x\n", page);
+            // page = page >> pTable.shiftArr[0];          // bit mask shifting
+            // printf("After shifting: %0x\n", page);
         }
     }
 
