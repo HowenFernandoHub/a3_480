@@ -5,8 +5,8 @@ PageTable::PageTable(int numLevels, int bitsInLevel[])
 {
     levelCount = numLevels;
     entryCountArr = new int[numLevels];
-    maskArr = new unsigned long int[numLevels];
-    shiftArr = new int[numLevels];
+    maskArr = new unsigned int[numLevels];
+    shiftArr = new unsigned int[numLevels];
     fillEntryCountArr(entryCountArr, bitsInLevel, levelCount);
     fillMaskArr(maskArr, bitsInLevel, numLevels);
     fillShiftArr(shiftArr, bitsInLevel, numLevels);
@@ -20,9 +20,9 @@ void PageTable::fillEntryCountArr(int entryCountArr[], int bitsInLvl[], int numL
     }
 }
 
-void PageTable::fillMaskArr(unsigned long int maskArr[], int bitsInLvl[], int numLevels)
+void PageTable::fillMaskArr(unsigned int maskArr[], int bitsInLvl[], int numLevels)
 {
-    unsigned long int mask;
+    unsigned int mask;
     for (int i = 0; i < numLevels; i++) {
         mask = 0;
         for (int j = 0; j < bitsInLvl[i]; j++) {
@@ -34,10 +34,10 @@ void PageTable::fillMaskArr(unsigned long int maskArr[], int bitsInLvl[], int nu
     shiftMaskArr(maskArr, bitsInLvl, numLevels);
 }
 
-unsigned long int PageTable::reverseBits(unsigned long int num)
+unsigned int PageTable::reverseBits(unsigned int num)
 {
-    int count = ((__SIZEOF_LONG__ * 8) -1); 
-    unsigned long int tmp = num;         //  Assign num to the tmp 
+    int count = ((__SIZEOF_INT__ * 8) -1); 
+    unsigned int tmp = num;         //  Assign num to the tmp 
 	     
     num >>= 1; // shift num because LSB already assigned to tmp
     
@@ -53,7 +53,7 @@ unsigned long int PageTable::reverseBits(unsigned long int num)
     return tmp;
 }
 
-void PageTable::shiftMaskArr(unsigned long int mask[], int bitsInLvl[], int numLevels)
+void PageTable::shiftMaskArr(unsigned int mask[], int bitsInLvl[], int numLevels)
 {
     // shift mask arr
     int shiftAmmount = 0;
@@ -63,7 +63,7 @@ void PageTable::shiftMaskArr(unsigned long int mask[], int bitsInLvl[], int numL
     }
 }
 
-void PageTable::fillShiftArr(int shiftArr[], int bitsInLvl[], int numLevels)
+void PageTable::fillShiftArr(unsigned int shiftArr[], int bitsInLvl[], int numLevels)
 {
     int shift = MEMORY_SPACE_SIZE;
     for (int i = 0; i < numLevels; i++) {
@@ -75,10 +75,10 @@ void PageTable::fillShiftArr(int shiftArr[], int bitsInLvl[], int numLevels)
 unsigned int PageTable::virtualAddressToPageNum(unsigned int virtualAddress, unsigned int mask, unsigned int shift)
 {
     // FIXME: Needs testing
-    unsigned int page;
-    page = page & mask;
-    page = page >> shift;
-    return page;
+    unsigned int pageNum;
+    pageNum = pageNum & mask;
+    pageNum = pageNum >> shift;
+    return pageNum;
 }
 
 void PageTable::pageInsert(PageTable *pagetable, unsigned int virtualAddress, unsigned int frame)
