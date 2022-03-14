@@ -86,8 +86,8 @@ FILE* readTraceFile(int argc, char *argv[])
 
 int main(int argc, char **argv)
 {
-    int nFlag;
-    int cFlag = 0;
+    int nFlag;      // how many addresses to read in
+    int cFlag = 0;  // cache capacity (default 0 = no TLB)
     char *oFlag;
 
     /**
@@ -119,7 +119,6 @@ int main(int argc, char **argv)
     int numLevels = (argc - 1) - optind;
     int bitsInLevel[numLevels];
 
-
     for (int i = 0; i < numLevels; i++) {
         bitsInLevel[i] = atoi(argv[optind + i + 1]);
     }
@@ -127,31 +126,32 @@ int main(int argc, char **argv)
     PageTable pTable(numLevels, bitsInLevel);
 
     for (int i = 0; i < numLevels; i++) {
+        printf("Bits Level %d: %d\n", i, bitsInLevel[i]);
         printf("Entry Count %d: %d\n", i, pTable.entryCountArr[i]);
-        printf("Mask %d: %0lx\n", i, pTable.maskArr[i]);
+        printf("Mask %d: %0x\n", i, pTable.maskArr[i]);
         printf("Shift %d: %d\n", i, pTable.shiftArr[i]);
     }
 
-
-
-    exit(0);
+    // exit(0);
+    sleep(10);      // just so I can check the mask and shift arr vals before printing addresses
 
 
     // this might all move to readTraceFile() method
     FILE* traceF = readTraceFile(argc, argv);
     p2AddrTr trace;
-    unsigned long int virtAddr = 0;
-    unsigned long int mask = 0xffff0000000;
-    unsigned long int page;
+    unsigned int virtAddr = 0;
+    unsigned int mask = pTable.maskArr[0];
+    unsigned int page;
 
     while (!feof(traceF)) {
         if(NextAddress(traceF, &trace))     // traceF: File handle from fOpen
         {
             virtAddr = trace.addr;
+            printf("Addr Before: %0x\n", virtAddr);
             page = virtAddr & mask;     // bit mask testing
-            // printf("After masking: %0lx\n", page);
-            page = page >> 28;          // bit mask shifting
-            // printf("After shifting: %0lx\n", page);
+            printf("After masking: %0x\n", page);
+            page = page >> pTable.shiftArr[0];          // bit mask shifting
+            printf("After shifting: %0x\n", page);
         }
     }
 
