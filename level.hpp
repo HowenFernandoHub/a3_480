@@ -5,21 +5,22 @@
 #include <stdlib.h>
 #include "Map.hpp"
 
-
+class PageTable;
 
 class Level
 {
     public:
         Level();
-        Level(int, class PageTable*);
+        Level(int, PageTable*);
         Level** nextLevel;        // FIXME: use new in constructor
-        Map** mapPtr;
+        Map* mapPtr;
         int currDepth;
-        class PageTable* pTable;
+        PageTable* pTable;
         void setNextLevel();
         void setNextLevelNull();
         void setMapPtr();
         void setCurrDepth(int);
+        void pageInsert(Level*, unsigned int, unsigned int);
 
 };
 

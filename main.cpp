@@ -133,7 +133,7 @@ int main(int argc, char **argv)
     }
 
     // exit(0);
-    sleep(10);      // just so I can check the mask and shift arr vals before printing addresses
+    sleep(5);      // just so I can check the mask and shift arr vals before printing addresses
 
 
     // this might all move to readTraceFile() method
@@ -143,15 +143,17 @@ int main(int argc, char **argv)
     unsigned int mask = pTable.maskArr[0];
     unsigned int page;
 
-    virtAddr = 0x0041f760;
+    virtAddr = 0xfefffec2;
 
     printf("Address: %x\n", virtAddr);
 
-    for (int i = 0; i < numLevels; i++) {
-        page = virtAddr & pTable.maskArr[i];
-        page = page >> pTable.shiftArr[i];
-        printf("Page %d: %x\n", i, page);
-    }
+    pTable.pageInsert(pTable.rootLevel, virtAddr, pTable.currFrameNum);
+
+    // for (int i = 0; i < numLevels; i++) {
+    //     page = virtAddr & pTable.maskArr[i];
+    //     page = page >> pTable.shiftArr[i];
+    //     printf("Page %d: %x\n", i, page);
+    // }
 
     while (!feof(traceF)) {
         if(NextAddress(traceF, &trace))     // traceF: File handle from fOpen

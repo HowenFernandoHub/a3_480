@@ -7,11 +7,13 @@ PageTable::PageTable(int numLevels, int bitsInLevel[])
     entryCountArr = new int[numLevels];
     maskArr = new unsigned int[numLevels];
     shiftArr = new unsigned int[numLevels];
+    currFrameNum = 0;
     fillEntryCountArr(entryCountArr, bitsInLevel, levelCount);
     fillMaskArr(maskArr, bitsInLevel, numLevels);
     fillShiftArr(shiftArr, bitsInLevel, numLevels);
-    Level zero(0, this);        // 'this' is pointer to this PageTable
-    zero.setNextLevelNull();    // set zeroeth levels netLevel[] to all nulls
+    rootLevel = new Level(0, this);        // 'this' is pointer to this PageTable
+    rootLevel->setNextLevel();
+    rootLevel->setNextLevelNull();    // set zeroeth levels netLevel[] to all nulls
 }
 
 void PageTable::fillEntryCountArr(int entryCountArr[], int bitsInLvl[], int numLvls)
@@ -82,9 +84,41 @@ unsigned int PageTable::virtualAddressToPageNum(unsigned int virtualAddress, uns
     return pageNum;
 }
 
-void PageTable::pageInsert(PageTable *pagetable, unsigned int virtualAddress, unsigned int frame)
+void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress, unsigned int frame)
 {
     // FIXME: Finish implementing insert page
+    unsigned int mask = maskArr[lvlPtr->currDepth];
+    unsigned int shift = shiftArr[lvlPtr->currDepth];
+    unsigned int pageNum = virtualAddressToPageNum(virtualAddress, mask, shift);
+
+    // go here if lvlPtr is a leaf node
+    if (lvlPtr->currDepth == levelCount - 1) {
+        printf("Depth: %d\n", lvlPtr->currDepth);
+        lvlPtr->setMapPtr();
+        lvlPtr->mapPtr[pageNum].setFrame(frame);
+        lvlPtr->mapPtr[pageNum].setValid();
+        printf("Frame Num: %d\n", frame);
+        frame++;
+    } 
+    // go here if lvlPtr is interior node
+    else {
+        printf("Depth: %d\n", lvlPtr->currDepth);
+        Level* newLevel = new Level(lvlPtr->currDepth + 1, this);
+        newLevel->setNextLevel();
+        newLevel->setNextLevelNull();
+        lvlPtr->nextLevel[pageNum] = newLevel;
+        pageInsert(newLevel, virtualAddress, frame);
+    }
+    
+}
+
+Map* PageTable::pageLookup(unsigned int virtAdd)
+{
+    // FIXME: Implement pageLookup
+    // unsigned int vpnArr[levelCount];
+    // for (int i = 0; i < levelCount; i++) {
+    //     vpnArr[i] = virtualAddressToPageNum(virtAdd, maskArr[i], shiftArr[i]);
+    // }
 }
 
 
