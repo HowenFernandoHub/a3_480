@@ -22,7 +22,7 @@ class PageTable
         unsigned int *shiftArr;       // make sure to use new
         int *entryCountArr;
         unsigned int virtualAddressToPageNum(unsigned int virtualAddress, unsigned int mask, unsigned int shift);
-        void pageInsert(Level*, unsigned int, unsigned int);
+        void pageInsert(Level* lvlPtr, unsigned int virtualAddress);
         Map* pageLookup(unsigned int);
     private:
         void fillMaskArr(unsigned int*, int*, int);

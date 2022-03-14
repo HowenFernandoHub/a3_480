@@ -144,10 +144,12 @@ int main(int argc, char **argv)
     unsigned int page;
 
     virtAddr = 0xfefffec2;
-
     printf("Address: %x\n", virtAddr);
+    pTable.pageInsert(pTable.rootLevel, virtAddr);
 
-    pTable.pageInsert(pTable.rootLevel, virtAddr, pTable.currFrameNum);
+    virtAddr = 0xfe0123c2;
+    printf("Address: %x\n", virtAddr);
+    pTable.pageInsert(pTable.rootLevel, virtAddr);
 
     // for (int i = 0; i < numLevels; i++) {
     //     page = virtAddr & pTable.maskArr[i];

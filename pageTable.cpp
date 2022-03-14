@@ -79,35 +79,46 @@ unsigned int PageTable::virtualAddressToPageNum(unsigned int virtualAddress, uns
 {
     // FIXME: Needs testing
     unsigned int pageNum;
-    pageNum = pageNum & mask;
+    pageNum = virtualAddress & mask;
     pageNum = pageNum >> shift;
     return pageNum;
 }
 
-void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress, unsigned int frame)
+void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
 {
     // FIXME: Finish implementing insert page
     unsigned int mask = maskArr[lvlPtr->currDepth];
     unsigned int shift = shiftArr[lvlPtr->currDepth];
     unsigned int pageNum = virtualAddressToPageNum(virtualAddress, mask, shift);
 
+    printf("PageNum%d: %0x\n", lvlPtr->currDepth, pageNum);
+
+
     // go here if lvlPtr is a leaf node
     if (lvlPtr->currDepth == levelCount - 1) {
         printf("Depth: %d\n", lvlPtr->currDepth);
         lvlPtr->setMapPtr();
-        lvlPtr->mapPtr[pageNum].setFrame(frame);
+        lvlPtr->mapPtr[pageNum].setFrame(currFrameNum);
         lvlPtr->mapPtr[pageNum].setValid();
-        printf("Frame Num: %d\n", frame);
-        frame++;
+        printf("Frame Num: %d\n", currFrameNum);
+        currFrameNum++;
     } 
     // go here if lvlPtr is interior node
     else {
-        printf("Depth: %d\n", lvlPtr->currDepth);
-        Level* newLevel = new Level(lvlPtr->currDepth + 1, this);
-        newLevel->setNextLevel();
-        newLevel->setNextLevelNull();
-        lvlPtr->nextLevel[pageNum] = newLevel;
-        pageInsert(newLevel, virtualAddress, frame);
+        // go here if pageNum at this level has already been set
+        if (lvlPtr->nextLevel[pageNum] != NULL) {
+            printf("Depth: %d\n", lvlPtr->currDepth);
+            printf("Already had a pageNum set: %0x\n", pageNum);
+            pageInsert(lvlPtr->nextLevel[pageNum], virtualAddress);
+        }
+        else {
+            printf("Depth: %d\n", lvlPtr->currDepth);
+            Level* newLevel = new Level(lvlPtr->currDepth + 1, this);
+            newLevel->setNextLevel();
+            newLevel->setNextLevelNull();
+            lvlPtr->nextLevel[pageNum] = newLevel;
+            pageInsert(newLevel, virtualAddress);
+        }
     }
     
 }
