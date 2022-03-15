@@ -4,6 +4,7 @@
 #define PAGETABLE
 
 #include "level.hpp"
+#include "tlb.hpp"
 #include "tracereader.h"
 #include "math.h"
 
@@ -16,6 +17,7 @@ class PageTable
     public:
         PageTable(int, int*);
         Level* rootLevel;
+        tlb* cache;
         int levelCount;
         unsigned int currFrameNum;      // for the pageInsert function to know what frameNum to use
         unsigned int *maskArr;
