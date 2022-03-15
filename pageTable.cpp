@@ -1,5 +1,7 @@
 #include "pageTable.hpp"
 
+#define BITS_INT 32
+
 // constructor
 PageTable::PageTable(int numLevels, int bitsInLevel[])
 {
@@ -7,6 +9,8 @@ PageTable::PageTable(int numLevels, int bitsInLevel[])
     entryCountArr = new int[numLevels];
     maskArr = new unsigned int[numLevels];
     shiftArr = new unsigned int[numLevels];
+    setOffsetMask(bitsInLevel);
+    setOffsetShift(bitsInLevel);
     currFrameNum = 0;
     fillEntryCountArr(entryCountArr, bitsInLevel, levelCount);
     fillMaskArr(maskArr, bitsInLevel, numLevels);
@@ -75,6 +79,32 @@ void PageTable::fillShiftArr(unsigned int shiftArr[], int bitsInLvl[], int numLe
     }
 }
 
+void PageTable::setOffsetMask(int bitsInLvl[])
+{
+    this->offsetMask = 0;
+    int numBitsOffset = BITS_INT;
+    for (int i = 0; i < levelCount; i++) {
+        numBitsOffset -= bitsInLvl[i];
+    }
+
+    for (int i = 0; i < numBitsOffset; i++) {
+        this->offsetMask += pow(2, i);
+    }
+}
+
+void PageTable::setOffsetShift(int bitsInLvl[])
+{
+    this->offsetShift = BITS_INT;
+    for (int i = 0; i < levelCount; i++) {
+        this->offsetShift -= bitsInLvl[i];
+    }
+}
+
+unsigned int PageTable::getOffset(unsigned int virtAddr)
+{
+    return virtAddr & offsetMask;
+}
+
 unsigned int PageTable::virtualAddressToPageNum(unsigned int virtualAddress, unsigned int mask, unsigned int shift)
 {
     // FIXME: Needs testing
@@ -91,7 +121,6 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
     unsigned int pageNum = virtualAddressToPageNum(virtualAddress, mask, shift);
 
     printf("PageNum%d: %0x\n", lvlPtr->currDepth, pageNum);
-
 
     // go here if lvlPtr is a leaf node
     if (lvlPtr->currDepth == levelCount - 1) {
@@ -116,7 +145,6 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
             pageInsert(newLevel, virtualAddress);
         }
     }
-    
 }
 
 Map* PageTable::pageLookup(Level* lvlPtr, unsigned int virtualAddress)
@@ -150,6 +178,25 @@ Map* PageTable::pageLookup(Level* lvlPtr, unsigned int virtualAddress)
     pageLookup(lvlPtr->nextLevel[pageNum], virtualAddress);     // recursion to next level
     
 }
+
+
+// FIXME: Not sure it needs to be like this!
+unsigned int PageTable::virtAddrss2PhysAddrss(unsigned int virtualAddress)
+{
+    unsigned physAddress;
+
+    Map* frame = pageLookup(rootLevel, virtualAddress);
+    if (frame == NULL) {
+        pageInsert(rootLevel, virtualAddress);
+    }
+    unsigned int frameNum = pageLookup(rootLevel, virtualAddress)->getFrame();
+    frameNum = frameNum << offsetShift;
+    physAddress = frameNum | getOffset(virtualAddress);
+
+    return physAddress;
+    
+}
+
 
 
 

@@ -16,3 +16,8 @@ void Map::setValid()
 {
     if (!valid) valid = true;
 }
+
+unsigned int Map::getFrame()
+{
+    return frame;
+}

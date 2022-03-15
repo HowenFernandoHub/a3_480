@@ -17,19 +17,25 @@ class PageTable
         PageTable(int, int*);
         Level* rootLevel;
         int levelCount;
-        unsigned int currFrameNum;    // for the pageInsert function to know what frameNum to use
-        unsigned int *maskArr;        // make sure to use new
-        unsigned int *shiftArr;       // make sure to use new
+        unsigned int currFrameNum;      // for the pageInsert function to know what frameNum to use
+        unsigned int *maskArr;
+        unsigned int *shiftArr;
         int *entryCountArr;
+        unsigned int getOffset(unsigned int virtAddr);
         unsigned int virtualAddressToPageNum(unsigned int virtualAddress, unsigned int mask, unsigned int shift);
         void pageInsert(Level* lvlPtr, unsigned int virtualAddress);
         Map* pageLookup(Level* lvlPtr, unsigned int virtualAddress);
-    private:
+        unsigned int virtAddrss2PhysAddrss(unsigned int virtualAddress);
+    
+        unsigned int offsetMask;        // to append onto PFN
+        unsigned int offsetShift;
         void fillMaskArr(unsigned int*, int*, int);
         void shiftMaskArr(unsigned int*, int*, int);
         unsigned int reverseBits(unsigned int);
         void fillShiftArr(unsigned int*, int*, int);
         void fillEntryCountArr(int*, int*, int);
+        void setOffsetMask(int*);
+        void setOffsetShift(int*);
         
 };
 
