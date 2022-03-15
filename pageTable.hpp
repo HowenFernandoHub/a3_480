@@ -25,7 +25,6 @@ class PageTable
         unsigned int virtualAddressToPageNum(unsigned int virtualAddress, unsigned int mask, unsigned int shift);
         void pageInsert(Level* lvlPtr, unsigned int virtualAddress);
         Map* pageLookup(Level* lvlPtr, unsigned int virtualAddress);
-        unsigned int virtAddrss2PhysAddrss(unsigned int virtualAddress);
     
         unsigned int offsetMask;        // to append onto PFN
         unsigned int offsetShift;
@@ -36,6 +35,7 @@ class PageTable
         void fillEntryCountArr(int*, int*, int);
         void setOffsetMask(int*);
         void setOffsetShift(int*);
+        unsigned int appendOffset(unsigned int frameNum, unsigned int virtualAddress);
         
 };
 

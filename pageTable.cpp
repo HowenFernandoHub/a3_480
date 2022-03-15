@@ -125,7 +125,7 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
     // go here if lvlPtr is a leaf node
     if (lvlPtr->currDepth == levelCount - 1) {
         lvlPtr->setMapPtr();
-        lvlPtr->mapPtr[pageNum].setFrame(currFrameNum);
+        lvlPtr->mapPtr[pageNum].setFrameNum(currFrameNum);
         lvlPtr->mapPtr[pageNum].setValid();
         printf("Frame Num: %d\n", currFrameNum);
         currFrameNum++;
@@ -180,21 +180,11 @@ Map* PageTable::pageLookup(Level* lvlPtr, unsigned int virtualAddress)
 }
 
 
-// FIXME: Not sure it needs to be like this!
-unsigned int PageTable::virtAddrss2PhysAddrss(unsigned int virtualAddress)
+unsigned int PageTable::appendOffset(unsigned int frameNum, unsigned int virtualAddress)
 {
-    unsigned physAddress;
-
-    Map* frame = pageLookup(rootLevel, virtualAddress);
-    if (frame == NULL) {
-        pageInsert(rootLevel, virtualAddress);
-    }
-    unsigned int frameNum = pageLookup(rootLevel, virtualAddress)->getFrame();
-    frameNum = frameNum << offsetShift;
-    physAddress = frameNum | getOffset(virtualAddress);
-
-    return physAddress;
-    
+    unsigned int physicalAddr = frameNum << offsetShift;
+    physicalAddr = physicalAddr | getOffset(virtualAddress);
+    return physicalAddr;
 }
 
 

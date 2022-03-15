@@ -3,13 +3,13 @@
 
 Map::Map()
 {
-    frame = 0;
+    frameNum = 0;
     valid = false;
 }
 
-void Map::setFrame(int frameNum)
+void Map::setFrameNum(int frameNum)
 {
-    frame = frameNum;
+    this->frameNum = frameNum;
 }
 
 void Map::setValid()
@@ -17,7 +17,7 @@ void Map::setValid()
     if (!valid) valid = true;
 }
 
-unsigned int Map::getFrame()
+unsigned int Map::getFrameNum()
 {
-    return frame;
+    return frameNum;
 }

@@ -5,12 +5,12 @@ class Map
 {
     public:
         Map();
-        void setFrame(int frameNum);
+        void setFrameNum(int frameNum);
         void setValid();
-        unsigned int getFrame();     
+        unsigned int getFrameNum();     
         bool valid;   
     private:
-        unsigned int frame;
+        unsigned int frameNum;
 
 
 };
