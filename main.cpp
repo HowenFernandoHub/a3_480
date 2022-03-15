@@ -137,7 +137,7 @@ int main(int argc, char **argv)
     }
 
     sleep(2);      // just so I can check the mask and shift arr vals before printing addresses
-
+    exit(0);
 
     // this might all move to readTraceFile() method
     FILE* traceF = readTraceFile(argc, argv);

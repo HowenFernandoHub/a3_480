@@ -6,9 +6,7 @@
 #include "level.hpp"
 #include "tlb.hpp"
 #include "tracereader.h"
-#include "math.h"
 
-#define MEMORY_SPACE_SIZE 32
 
 
 

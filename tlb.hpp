@@ -2,6 +2,9 @@
 #define TLB
 
 #include <map>
+#include "math.h"
+#define MEMORY_SPACE_SIZE 32
+
 
 class tlb
 {
