@@ -9,10 +9,13 @@
 class tlb
 {
     public:
-        tlb(int vpnNumBits);
+        tlb(int vpnNumBits, int capacity);
         std::map<unsigned int, unsigned int> vpn2pfn;
+        int capacity;
         unsigned int vpnMask;
         void setVpnMask(int vpnNumBits);
+        bool hasMapping(unsigned int vpn);
+        void insertMapping(unsigned int vpn, unsigned int frameNum);
 };
 
 #endif

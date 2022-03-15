@@ -10,15 +10,12 @@ PageTable::PageTable(int numLevels, int bitsInLevel[])
         totNumBits += bitsInLevel[i];
     }
 
-    cache = new tlb(totNumBits);
-
-    printf("VPN Mask: %x\n", cache->vpnMask);
     levelCount = numLevels;
     entryCountArr = new int[numLevels];
     maskArr = new unsigned int[numLevels];
     shiftArr = new unsigned int[numLevels];
-    setOffsetMask(bitsInLevel);
-    setOffsetShift(bitsInLevel);
+    setOffsetMask(totNumBits);
+    setOffsetShift(totNumBits);
     currFrameNum = 0;
     fillEntryCountArr(entryCountArr, bitsInLevel, levelCount);
     fillMaskArr(maskArr, bitsInLevel, numLevels);
@@ -87,25 +84,19 @@ void PageTable::fillShiftArr(unsigned int shiftArr[], int bitsInLvl[], int numLe
     }
 }
 
-void PageTable::setOffsetMask(int bitsInLvl[])
+void PageTable::setOffsetMask(int vpnNumBits)
 {
     this->offsetMask = 0;
-    int numBitsOffset = MEMORY_SPACE_SIZE;
-    for (int i = 0; i < levelCount; i++) {
-        numBitsOffset -= bitsInLvl[i];
-    }
+    int numBitsOffset = MEMORY_SPACE_SIZE - vpnNumBits;
 
     for (int i = 0; i < numBitsOffset; i++) {
         this->offsetMask += pow(2, i);
     }
 }
 
-void PageTable::setOffsetShift(int bitsInLvl[])
+void PageTable::setOffsetShift(int vpnNumBits)
 {
-    this->offsetShift = MEMORY_SPACE_SIZE;
-    for (int i = 0; i < levelCount; i++) {
-        this->offsetShift -= bitsInLvl[i];
-    }
+    this->offsetShift = MEMORY_SPACE_SIZE - vpnNumBits;
 }
 
 unsigned int PageTable::getOffset(unsigned int virtAddr)
@@ -165,12 +156,12 @@ Map* PageTable::pageLookup(Level* lvlPtr, unsigned int virtualAddress)
     if (lvlPtr->currDepth == levelCount - 1) {
         // go here if mapPtr not set
         if (lvlPtr->mapPtr == NULL) {
-            printf("MAP NOT FOUND\n");
+            // printf("MAP NOT FOUND\n");
             return NULL;
         }
         // go here if map invalid
         if (!lvlPtr->mapPtr[pageNum].valid) {
-            printf("MAP NOT FOUND\n");
+            // printf("MAP NOT FOUND\n");
             return NULL;
         }
         // page found!
@@ -179,7 +170,7 @@ Map* PageTable::pageLookup(Level* lvlPtr, unsigned int virtualAddress)
     } 
     // go here if lvlPtr is interior node
     if (lvlPtr->nextLevel[pageNum] == NULL) {
-        printf("PAGE %d NOT FOUND\n", lvlPtr->currDepth);
+        // printf("PAGE %d NOT FOUND\n", lvlPtr->currDepth);
         return NULL;
     }
 

@@ -1,8 +1,9 @@
 #include "tlb.hpp"
 
 
-tlb::tlb(int vpnNumBits)
+tlb::tlb(int vpnNumBits, int capacity)
 {
+    this->capacity = capacity;
     setVpnMask(vpnNumBits);
 }
 
@@ -13,4 +14,18 @@ void tlb::setVpnMask(int vpnNumBits)
     for (int i = 0; i <= vpnNumBits; i++) {
         vpnMask += pow(2, MEMORY_SPACE_SIZE - i);
     }
+}
+
+bool tlb::hasMapping(unsigned int vpn)
+{
+    if (vpn2pfn.find(vpn) != vpn2pfn.end()) {
+        return true;
+    }
+    return false;
+}
+
+void tlb::insertMapping(unsigned int vpn, unsigned int frameNum)
+{
+    // FIXME: Need to check for space available
+    vpn2pfn[vpn] = frameNum;
 }

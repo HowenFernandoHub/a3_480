@@ -15,7 +15,6 @@ class PageTable
     public:
         PageTable(int, int*);
         Level* rootLevel;
-        tlb* cache;
         int levelCount;
         unsigned int currFrameNum;      // for the pageInsert function to know what frameNum to use
         unsigned int *maskArr;
@@ -33,8 +32,8 @@ class PageTable
         unsigned int reverseBits(unsigned int);
         void fillShiftArr(unsigned int*, int*, int);
         void fillEntryCountArr(int*, int*, int);
-        void setOffsetMask(int*);
-        void setOffsetShift(int*);
+        void setOffsetMask(int);
+        void setOffsetShift(int);
         unsigned int appendOffset(unsigned int frameNum, unsigned int virtualAddress);
         
 };

@@ -122,77 +122,88 @@ int main(int argc, char **argv)
     processCmdLnArgs(argc, argv, &nFlag, &cFlag, &oFlag);
     int numLevels = (argc - 1) - optind;
     int bitsInLevel[numLevels];
-
+    int totNumBits = 0;
     for (int i = 0; i < numLevels; i++) {
         bitsInLevel[i] = atoi(argv[optind + i + 1]);
+        totNumBits += bitsInLevel[i];
     }
 
     PageTable pTable(numLevels, bitsInLevel);
+    tlb* cache = new tlb(totNumBits, cFlag);
 
-    for (int i = 0; i < numLevels; i++) {
-        printf("Bits Level %d: %d\n", i, bitsInLevel[i]);
-        printf("Entry Count %d: %d\n", i, pTable.entryCountArr[i]);
-        printf("Mask %d: %0x\n", i, pTable.maskArr[i]);
-        printf("Shift %d: %d\n\n", i, pTable.shiftArr[i]);
-    }
+    // for (int i = 0; i < numLevels; i++) {
+    //     printf("Bits Level %d: %d\n", i, bitsInLevel[i]);
+    //     printf("Entry Count %d: %d\n", i, pTable.entryCountArr[i]);
+    //     printf("Mask %d: %0x\n", i, pTable.maskArr[i]);
+    //     printf("Shift %d: %d\n\n", i, pTable.shiftArr[i]);
+    // }
 
     sleep(2);      // just so I can check the mask and shift arr vals before printing addresses
-    exit(0);
+    // exit(0);
 
     // this might all move to readTraceFile() method
     FILE* traceF = readTraceFile(argc, argv);
     p2AddrTr trace;
     unsigned int virtAddr = 0;
-    unsigned int physFrameNum = 0;
+    unsigned int vpn = 0;
+    unsigned int frameNum = 0;
     unsigned int physAddr = 0;
     Map* frame;
 
     /********* TEST OF PAGE_INSERT AND PAGE_LOOKUP *********/
-    // virtAddr = 0xfefffec2;
-    // printf("VAddress: %x\n", virtAddr);
-    // pTable.pageInsert(pTable.rootLevel, virtAddr);
-    // frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
-    // physFrameNum = frame->getFrame();
-    // physFrameNum = physFrameNum << pTable.offsetShift;
-    // physAddr = physFrameNum | pTable.getOffset(virtAddr);
-    // printf("PAddress: %x\n\n", physAddr);
+    // unsigned int addArr [] = {0xfefffec2, 0xfe0123c2, 0xfefffec2, 0xfe0123c2};
 
-    // virtAddr = 0xfe0123c2;
-    // printf("Address: %x\n", virtAddr);
-    // pTable.pageInsert(pTable.rootLevel, virtAddr);
-    // frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
-    // physFrameNum = frame->getFrame();
-    // physFrameNum = physFrameNum << pTable.offsetShift;
-    // physAddr = physFrameNum | pTable.getOffset(virtAddr);
-    // printf("PAddress: %x\n\n", physAddr);
-
-
-    // virtAddr = 0xfe0123c2;
-    // printf("Address: %x\n", virtAddr);
-    // pTable.pageLookup(pTable.rootLevel, virtAddr);
-
-    // virtAddr = 0xfeffffc2;
-    // printf("Address: %x\n", virtAddr);
-    // pTable.pageLookup(pTable.rootLevel, virtAddr);
-
-    // virtAddr = 0xfef3ffc2;
-    // printf("Address: %x\n", virtAddr);
-    // pTable.pageLookup(pTable.rootLevel, virtAddr);
-    /********************************************/
+    // for (int i = 0; i < 4; i ++) {
+    //     virtAddr = addArr[i];
+    //     printf("VAddress: %0x\n", virtAddr);
+    //     vpn = virtAddr & cache->vpnMask;
+    //     // go here if TLB hit
+    //     if (cache->hasMapping(vpn)) {
+    //         printf("Page in TLB!\n");
+    //         frameNum = cache->vpn2pfn[vpn];
+    //     }
+    //     // go here if TLB MISS
+    //     else {
+    //         frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
+    //         if (frame == NULL) {
+    //             // go here if VPN not already in tree
+    //             printf("Page not yet in pTable!\n");
+    //             pTable.pageInsert(pTable.rootLevel, virtAddr);
+    //             frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
+    //         }
+    //         frameNum = frame->getFrameNum();
+    //         cache->vpn2pfn[vpn] = frameNum;     // update cache
+    //     }
+    //     physAddr = pTable.appendOffset(frameNum, virtAddr);
+    //     printf("PAddress: %x\n\n", physAddr);
+    // }
 
     // read all virtual addresses and insert into tree if not already present
     while (!feof(traceF)) {
         if(NextAddress(traceF, &trace))     // traceF: File handle from fOpen
         {
             virtAddr = trace.addr;
-            printf("Address: %0x\n", virtAddr);
-            frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
-            if (frame == NULL) {
-                // go here if VPN not already in tree
-                pTable.pageInsert(pTable.rootLevel, virtAddr);
-                frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
+            printf("VAddress: %0x\n", virtAddr);
+            vpn = virtAddr & cache->vpnMask;
+            // go here if TLB hit
+            if (cache->hasMapping(vpn)) {
+                printf("Page in TLB!\n");
+                frameNum = cache->vpn2pfn[vpn];
             }
-            physAddr = pTable.appendOffset(frame->getFrameNum(), virtAddr);
+            // go here if TLB MISS
+            else {
+                frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
+                if (frame == NULL) {
+                    // go here if VPN not already in tree
+                    printf("Page not yet in pTable!\n");
+                    pTable.pageInsert(pTable.rootLevel, virtAddr);
+                    frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
+                }
+                frameNum = frame->getFrameNum();
+                cache->vpn2pfn[vpn] = frameNum;     // update cache
+            }
+            physAddr = pTable.appendOffset(frameNum, virtAddr);
+            printf("PAddress: %x\n\n", physAddr);
         }
     }
 
