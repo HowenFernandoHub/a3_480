@@ -20,7 +20,6 @@ class Level
         void setNextLevelNull();
         void setMapPtr();
         void setCurrDepth(int);
-        void pageInsert(Level*, unsigned int, unsigned int);
 
 };
 

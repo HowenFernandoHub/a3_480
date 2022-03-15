@@ -132,7 +132,6 @@ int main(int argc, char **argv)
         printf("Shift %d: %d\n", i, pTable.shiftArr[i]);
     }
 
-    // exit(0);
     sleep(5);      // just so I can check the mask and shift arr vals before printing addresses
 
 
@@ -140,9 +139,8 @@ int main(int argc, char **argv)
     FILE* traceF = readTraceFile(argc, argv);
     p2AddrTr trace;
     unsigned int virtAddr = 0;
-    unsigned int mask = pTable.maskArr[0];
-    unsigned int page;
 
+    /********* TEST OF PAGE_INSERT AND PAGE_LOOKUP *********/
     virtAddr = 0xfefffec2;
     printf("Address: %x\n", virtAddr);
     pTable.pageInsert(pTable.rootLevel, virtAddr);
@@ -151,21 +149,25 @@ int main(int argc, char **argv)
     printf("Address: %x\n", virtAddr);
     pTable.pageInsert(pTable.rootLevel, virtAddr);
 
-    // for (int i = 0; i < numLevels; i++) {
-    //     page = virtAddr & pTable.maskArr[i];
-    //     page = page >> pTable.shiftArr[i];
-    //     printf("Page %d: %x\n", i, page);
-    // }
+    virtAddr = 0xfe0123c2;
+    printf("Address: %x\n", virtAddr);
+    pTable.pageLookup(pTable.rootLevel, virtAddr);
+
+    virtAddr = 0xfeffffc2;
+    printf("Address: %x\n", virtAddr);
+    pTable.pageLookup(pTable.rootLevel, virtAddr);
+
+    virtAddr = 0xfef3ffc2;
+    printf("Address: %x\n", virtAddr);
+    pTable.pageLookup(pTable.rootLevel, virtAddr);
+    /********************************************/
 
     while (!feof(traceF)) {
         if(NextAddress(traceF, &trace))     // traceF: File handle from fOpen
         {
             // virtAddr = trace.addr;
-            // printf("Addr Before: %0x\n", virtAddr);
-            // page = virtAddr & mask;     // bit mask testing
-            // printf("After masking: %0x\n", page);
-            // page = page >> pTable.shiftArr[0];          // bit mask shifting
-            // printf("After shifting: %0x\n", page);
+            // printf("Address: %0x\n", virtAddr);
+            // pTable.pageInsert(pTable.rootLevel, virtAddr);
         }
     }
 

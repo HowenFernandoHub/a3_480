@@ -6,10 +6,10 @@ class Map
     public:
         Map();
         void setFrame(int frameNum);
-        void setValid();        
+        void setValid();     
+        bool valid;   
     private:
         int frame;
-        bool valid;
 
 
 };

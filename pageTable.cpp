@@ -86,7 +86,6 @@ unsigned int PageTable::virtualAddressToPageNum(unsigned int virtualAddress, uns
 
 void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
 {
-    // FIXME: Finish implementing insert page
     unsigned int mask = maskArr[lvlPtr->currDepth];
     unsigned int shift = shiftArr[lvlPtr->currDepth];
     unsigned int pageNum = virtualAddressToPageNum(virtualAddress, mask, shift);
@@ -96,7 +95,6 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
 
     // go here if lvlPtr is a leaf node
     if (lvlPtr->currDepth == levelCount - 1) {
-        printf("Depth: %d\n", lvlPtr->currDepth);
         lvlPtr->setMapPtr();
         lvlPtr->mapPtr[pageNum].setFrame(currFrameNum);
         lvlPtr->mapPtr[pageNum].setValid();
@@ -107,12 +105,10 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
     else {
         // go here if pageNum at this level has already been set
         if (lvlPtr->nextLevel[pageNum] != NULL) {
-            printf("Depth: %d\n", lvlPtr->currDepth);
             printf("Already had a pageNum set: %0x\n", pageNum);
             pageInsert(lvlPtr->nextLevel[pageNum], virtualAddress);
         }
         else {
-            printf("Depth: %d\n", lvlPtr->currDepth);
             Level* newLevel = new Level(lvlPtr->currDepth + 1, this);
             newLevel->setNextLevel();
             newLevel->setNextLevelNull();
@@ -123,13 +119,36 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
     
 }
 
-Map* PageTable::pageLookup(unsigned int virtAdd)
+Map* PageTable::pageLookup(Level* lvlPtr, unsigned int virtualAddress)
 {
-    // FIXME: Implement pageLookup
-    // unsigned int vpnArr[levelCount];
-    // for (int i = 0; i < levelCount; i++) {
-    //     vpnArr[i] = virtualAddressToPageNum(virtAdd, maskArr[i], shiftArr[i]);
-    // }
+    unsigned int mask = maskArr[lvlPtr->currDepth];
+    unsigned int shift = shiftArr[lvlPtr->currDepth];
+    unsigned int pageNum = virtualAddressToPageNum(virtualAddress, mask, shift);
+
+    // go here if lvlPtr is a leaf node
+    if (lvlPtr->currDepth == levelCount - 1) {
+        // go here if mapPtr not set
+        if (lvlPtr->mapPtr == NULL) {
+            printf("MAP NOT FOUND\n");
+            return NULL;
+        }
+        // go here if map invalid
+        if (!lvlPtr->mapPtr[pageNum].valid) {
+            printf("MAP NOT FOUND\n");
+            return NULL;
+        }
+        // page found!
+        printf("MAP FOUND!!!\n");
+        return &(lvlPtr->mapPtr[pageNum]);
+    } 
+    // go here if lvlPtr is interior node
+    if (lvlPtr->nextLevel[pageNum] == NULL) {
+        printf("PAGE %d NOT FOUND\n", lvlPtr->currDepth);
+        return NULL;
+    }
+
+    pageLookup(lvlPtr->nextLevel[pageNum], virtualAddress);     // recursion to next level
+    
 }
 
 
