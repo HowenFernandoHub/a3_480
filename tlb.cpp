@@ -26,6 +26,12 @@ bool tlb::hasMapping(unsigned int vpn)
 
 void tlb::insertMapping(unsigned int vpn, unsigned int frameNum)
 {
-    // FIXME: Need to check for space available
-    vpn2pfn[vpn] = frameNum;
+    // tlb not at capacity, safe to insert
+    if (vpn2pfn.size() < capacity) {
+        vpn2pfn[vpn] = frameNum;
+    }
+    else {
+        // FIXME: finish what to do when at capacity
+        // 
+    }
 }

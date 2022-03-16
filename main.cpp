@@ -200,7 +200,7 @@ int main(int argc, char **argv)
                     frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
                 }
                 frameNum = frame->getFrameNum();
-                cache->vpn2pfn[vpn] = frameNum;     // update cache
+                cache->insertMapping(vpn, frameNum);    // update cache
             }
             physAddr = pTable.appendOffset(frameNum, virtAddr);
             printf("PAddress: %x\n\n", physAddr);
