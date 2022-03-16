@@ -3,8 +3,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include "pageTable.hpp"
+#include "output_mode_helpers.h"
 
 #define MEMORY_SPACE_SIZE 32
+#define DEFAULT_CACHE_SIZE 0
+#define DEFAULT_OUTPUT_MODE 'summary'
 
 
 void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFlag)
@@ -68,10 +71,49 @@ void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFl
 
 }
 
+void readAdresses(FILE* traceFile, p2AddrTr trace, PageTable* pTable, tlb* cache)
+{
+    unsigned int virtAddr = 0;
+    unsigned int vpn = 0;
+    unsigned int frameNum = 0;
+    unsigned int physAddr = 0;
+    Map* frame;
+
+    // read all virtual addresses and insert into tree if not already present
+    while (!feof(traceFile)) {
+        if(NextAddress(traceFile, &trace))     // traceFile: File handle from fOpen
+        {
+            virtAddr = trace.addr;
+            printf("VAddress: %0x\n", virtAddr);
+            vpn = virtAddr & cache->vpnMask;
+            // go here if TLB hit
+            if (cache->hasMapping(vpn)) {
+                printf("Page in TLB!\n");
+                frameNum = cache->vpn2pfn[vpn];
+            }
+            // go here if TLB MISS
+            else {
+                frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
+                if (frame == NULL) {
+                    // go here if VPN not already in tree
+                    printf("Page not yet in pTable!\n");
+                    pTable->pageInsert(pTable->rootLevel, virtAddr);
+                    frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
+                }
+                frameNum = frame->getFrameNum();
+                cache->insertMapping(vpn, frameNum);    // update cache
+            }
+            physAddr = pTable->appendOffset(frameNum, virtAddr);
+            printf("PAddress: %x\n\n", physAddr);
+        }
+    }
+
+}
+
 
 FILE* readTraceFile(int argc, char *argv[])
 {
-    FILE *traceFile;
+    FILE* traceFile;
 
     // check that trace file can be opened
     char *traceFname = argv[optind];
@@ -87,39 +129,31 @@ FILE* readTraceFile(int argc, char *argv[])
 int main(int argc, char **argv)
 {
     int nFlag;      // how many addresses to read in
-    int cFlag = 0;  // cache capacity (default 0 = no TLB)
+    int cFlag = DEFAULT_CACHE_SIZE;  // cache capacity (default 0 = no TLB)
     char *oFlag;
 
     /**
      * 
      * NEXT TO DO
      *  - IMPLEMENT TLB
+     *  - CACHE REPLACEMENT (Nathan)
+     *  - OUTPUT MODES (Junior)
      * 
      * 
      * IMPLEMENT LEVEL (Junior) COMPLETE
      * 
      * 
      * IMPLEMENT PAGE TABLE (Nathan does .cpp) COMPLETE!
-     *  - levelCount
-     *  - bitmask[i]
-     *  - bitShift[i]
-     *  - entryCount[i]
-     *  - Level *nextLevel[]
-     *  - unsigned int virtualAddressToPageNum(unsigned int virtualAddress, unsigned int mask, unsigned int shift);
-     *  - PageTable (Has pointer to 0 level page tree)
-     *  - Level (struct/class)
-     *      - curr depth
-     *      - pointer to PageTable to access info
-     *  - Map (struct/class)
      * 
      * IMPLEMENT MAP COMPLETE
      * 
      * INITIALIZE PAGE TABLE LVL 0 COMPLETE
-     *  - all nulls?
+     * 
      */
 
 
     processCmdLnArgs(argc, argv, &nFlag, &cFlag, &oFlag);
+
     int numLevels = (argc - 1) - optind;
     int bitsInLevel[numLevels];
     int totNumBits = 0;
@@ -128,8 +162,13 @@ int main(int argc, char **argv)
         totNumBits += bitsInLevel[i];
     }
 
+    FILE* traceFile = readTraceFile(argc, argv);
+    p2AddrTr trace;
+
     PageTable pTable(numLevels, bitsInLevel);
-    tlb* cache = new tlb(totNumBits, cFlag);
+    tlb* cache = new tlb(totNumBits, cFlag);    
+
+    readAdresses(traceFile, trace, &pTable, cache);
 
     // for (int i = 0; i < numLevels; i++) {
     //     printf("Bits Level %d: %d\n", i, bitsInLevel[i]);
@@ -138,17 +177,6 @@ int main(int argc, char **argv)
     //     printf("Shift %d: %d\n\n", i, pTable.shiftArr[i]);
     // }
 
-    sleep(2);      // just so I can check the mask and shift arr vals before printing addresses
-    // exit(0);
-
-    // this might all move to readTraceFile() method
-    FILE* traceF = readTraceFile(argc, argv);
-    p2AddrTr trace;
-    unsigned int virtAddr = 0;
-    unsigned int vpn = 0;
-    unsigned int frameNum = 0;
-    unsigned int physAddr = 0;
-    Map* frame;
 
     /********* TEST OF PAGE_INSERT AND PAGE_LOOKUP *********/
     // unsigned int addArr [] = {0xfefffec2, 0xfe0123c2, 0xfefffec2, 0xfe0123c2};
@@ -178,34 +206,28 @@ int main(int argc, char **argv)
     //     printf("PAddress: %x\n\n", physAddr);
     // }
 
-    // read all virtual addresses and insert into tree if not already present
-    while (!feof(traceF)) {
-        if(NextAddress(traceF, &trace))     // traceF: File handle from fOpen
-        {
-            virtAddr = trace.addr;
-            printf("VAddress: %0x\n", virtAddr);
-            vpn = virtAddr & cache->vpnMask;
-            // go here if TLB hit
-            if (cache->hasMapping(vpn)) {
-                printf("Page in TLB!\n");
-                frameNum = cache->vpn2pfn[vpn];
-            }
-            // go here if TLB MISS
-            else {
-                frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
-                if (frame == NULL) {
-                    // go here if VPN not already in tree
-                    printf("Page not yet in pTable!\n");
-                    pTable.pageInsert(pTable.rootLevel, virtAddr);
-                    frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
-                }
-                frameNum = frame->getFrameNum();
-                cache->insertMapping(vpn, frameNum);    // update cache
-            }
-            physAddr = pTable.appendOffset(frameNum, virtAddr);
-            printf("PAddress: %x\n\n", physAddr);
-        }
-    }
+    // deal with output mode
+    // switch (*oFlag) {
+    //     case 'bitmasks':
+    //         report_bitmasks(numLevels, pTable.maskArr);
+    //         break;
+    //     case 'virtual2physical':
+    //         // report_virtual2physical();
+    //         break;
+    //     case 'v2p_tlb_pt':
+    //         break;
+    //     case 'vpn2pfn':
+    //         break;
+    //     case 'offset':
+    //         break;
+    //     case 'summary':
+    //         break;
+    //     default:
+    //         std::cout << "Invalid Output Mode" << std::endl;
+    //         exit(EXIT_FAILURE);
+    // }
+
+    
 
     
 }
