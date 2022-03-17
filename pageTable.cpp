@@ -119,21 +119,21 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
     unsigned int shift = shiftArr[lvlPtr->currDepth];
     unsigned int pageNum = virtualAddressToPageNum(virtualAddress, mask, shift);
 
-    printf("PageNum%d: %0x\n", lvlPtr->currDepth, pageNum);
+    // printf("PageNum%d: %0x\n", lvlPtr->currDepth, pageNum);
 
     // go here if lvlPtr is a leaf node
     if (lvlPtr->currDepth == levelCount - 1) {
         lvlPtr->setMapPtr();
         lvlPtr->mapPtr[pageNum].setFrameNum(currFrameNum);
         lvlPtr->mapPtr[pageNum].setValid();
-        printf("Frame Num: %d\n", currFrameNum);
+        // printf("Frame Num: %d\n", currFrameNum);
         currFrameNum++;
     } 
     // go here if lvlPtr is interior node
     else {
         // go here if pageNum at this level has already been set
         if (lvlPtr->nextLevel[pageNum] != NULL) {
-            printf("Already had a pageNum set: %0x\n", pageNum);
+            // printf("Already had a pageNum set: %0x\n", pageNum);
             pageInsert(lvlPtr->nextLevel[pageNum], virtualAddress);
         }
         else {
@@ -165,7 +165,7 @@ Map* PageTable::pageLookup(Level* lvlPtr, unsigned int virtualAddress)
             return NULL;
         }
         // page found!
-        printf("MAP FOUND!!!\n");
+        // printf("MAP FOUND!!!\n");
         return &(lvlPtr->mapPtr[pageNum]);
     } 
     // go here if lvlPtr is interior node
