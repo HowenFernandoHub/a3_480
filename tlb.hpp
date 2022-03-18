@@ -2,6 +2,7 @@
 #define TLB
 
 #include <map>
+#include <vector>
 #include "math.h"
 #define MEMORY_SPACE_SIZE 32
 
@@ -10,7 +11,8 @@ class tlb
 {
     public:
         tlb(int vpnNumBits, int capacity);
-        std::map<unsigned int, unsigned int> vpn2pfn;
+        std::map<unsigned int, unsigned int> vpn2pfn;   // k: vpn, v: pfn
+        std::vector<unsigned int> queue;    // always be size 10
         int capacity;
         unsigned int vpnMask;
         void setVpnMask(int vpnNumBits);
