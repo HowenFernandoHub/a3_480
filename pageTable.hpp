@@ -18,6 +18,8 @@ class PageTable
         unsigned int levelCount;
         unsigned int vpnNumNBits;
         unsigned int pageSizeBytes;
+        unsigned int countPageTableHits;
+        unsigned int countTlbHits;
         unsigned int currFrameNum;      // for the pageInsert function to know what frameNum to use
         unsigned int *maskArr;
         unsigned int *shiftArr;

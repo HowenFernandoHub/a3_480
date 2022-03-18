@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/pagingwithtlb",
-            "args": ["-n", "20", "-o", "virtual2physical", "trace.tr", "24"],
+            "args": ["-n", "20", "-c", "2", "-o", "v2p_tlb_pt", "trace.tr", "4", "4", "12"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

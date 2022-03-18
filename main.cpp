@@ -101,8 +101,9 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
     Map* frame;
     
     virtAddr = trace->addr;
-    // printf("VAddress: %0x\n", virtAddr);
     vpn = virtAddr & cache->vpnMask;
+
+    cache->updateQueue(vpn);    // update most recently used
 
     // go here if TLB hit
     if (cache->hasMapping(vpn)) {
@@ -139,7 +140,6 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
     else if (offset) {
         hexnum(pTable->getOffset(virtAddr));
     }
-    // printf("PAddress: %x\n\n", physAddr);
 }
 
 
@@ -216,12 +216,14 @@ int main(int argc, char **argv)
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, true, false, false, false);
     } else if (strcmp(oFlag, "v2p_tlb_pt") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, true, false, false);
+        // NEED TO FINISH THIS ONE TOO!
     } else if (strcmp(oFlag, "vpn2pfn") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, true, false);
     } else if (strcmp(oFlag, "offset") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, false, true);
     } else if (strcmp(oFlag, "summary") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, false, false);
+        // report_summary();    FIXME: FINISH THIS!
     } else {
         std::cout << "Invalid Output Mode" << std::endl;
         exit(EXIT_FAILURE);
