@@ -5,13 +5,14 @@
 PageTable::PageTable(unsigned int numLevels, unsigned int bitsInLevel[])
 {
     unsigned int totNumBits = 0;
+    addressCount = 0;
 
     for (int i = 0; i < numLevels; i++) {
         totNumBits += bitsInLevel[i];
     }
 
-    vpnNumNBits = totNumBits;
-    pageSizeBytes = (MEMORY_SPACE_SIZE - vpnNumNBits) / 8;
+    vpnNumBits = totNumBits;
+    pageSizeBytes = (MEMORY_SPACE_SIZE - vpnNumBits) / 8;
 
     levelCount = numLevels;
     entryCountArr = new unsigned int[numLevels];

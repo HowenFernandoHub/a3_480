@@ -63,7 +63,7 @@ void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFl
         bitOption = atoi(argv[i]);
         totBits += bitOption;
         if (bitOption < 1) {
-            std::cerr << "Level " << i << " page table must be at least 1 bit" << std::endl;
+            std::cerr << "Level " << i - optind - 1 << " page table must be at least 1 bit" << std::endl;
             exit(EXIT_FAILURE);
         }
         if (totBits > 28) {
@@ -102,11 +102,12 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
     
     virtAddr = trace->addr;
     vpn = virtAddr & cache->vpnMask;
+    vpn = vpn >> (MEMORY_SPACE_SIZE - pTable->vpnNumBits);
 
     cache->updateQueue(vpn);    // update most recently used
 
     // go here if TLB hit
-    if (cache->hasMapping(vpn)) {
+    if (cache->hasMapping(vpn, frameNum)) {
         frameNum = cache->vpn2pfn[vpn];
         tlbHit = true;
     }
@@ -139,7 +140,7 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
     }
     else if (offset) {
         hexnum(pTable->getOffset(virtAddr));
-    }
+    }   
 }
 
 
@@ -151,12 +152,14 @@ void readAddresses(FILE* traceFile, p2AddrTr *trace, PageTable* pTable, tlb* cac
         while (!feof(traceFile)) {
             if(NextAddress(traceFile, trace)) {     // traceFile: File handle from fOpen
                 processNextAddress(traceFile, trace, pTable, cache, v2p, v2p_tlb, vpn2pfn, offset);
+                pTable->addressCount++;
             }
         }
     } else {
         for (int i = 0; i < numAddresses; i++) {
             if(NextAddress(traceFile, trace)) {     // traceFile: File handle from fOpen
                 processNextAddress(traceFile, trace, pTable, cache, v2p, v2p_tlb, vpn2pfn, offset);
+                pTable->addressCount++;
             }
         }
     }
@@ -210,7 +213,6 @@ int main(int argc, char **argv)
 
     // deal with output mode
     if (strcmp(oFlag, "bitmasks") == 0) {
-        printf("Got here!");
         report_bitmasks(numLevels, pTable.maskArr);
     } else if (strcmp(oFlag, "virtual2physical") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, true, false, false, false);

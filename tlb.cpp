@@ -18,7 +18,7 @@ void tlb::setVpnMask(int vpnNumBits)
     }
 }
 
-bool tlb::hasMapping(unsigned int vpn)
+bool tlb::hasMapping(unsigned int vpn, unsigned int frameNum)
 {
     if (vpn2pfn.find(vpn) != vpn2pfn.end()) {
         return true;
@@ -28,14 +28,15 @@ bool tlb::hasMapping(unsigned int vpn)
 
 void tlb::insertMapping(unsigned int vpn, unsigned int frameNum)
 {
-    // tlb not at capacity, safe to insert
-    if (vpn2pfn.size() < capacity) {
-        vpn2pfn[vpn] = frameNum;
-    }
-    else {
+    // if tlb at capacity need to erase the least recent used address
+    if (vpn2pfn.size() >= capacity) {
+        std::map<unsigned int, unsigned int>::iterator iter;
+        iter = vpn2pfn.find(recentPages.front());
         vpn2pfn.erase(recentPages.front());     // erase least recently used
-        vpn2pfn[vpn] = frameNum;
+        recentPages.pop_front();
     }
+    
+    vpn2pfn[vpn] = frameNum;
 }
 
 bool tlb::queueContains(unsigned int vpn)
@@ -63,7 +64,8 @@ void tlb::updateQueue(unsigned int recentVpn)
     
     recentPages.push_back(recentVpn);
     
-    if (recentPages.size() >= MAX_QUEUE_SIZE) {
+    if (recentPages.size() > MAX_QUEUE_SIZE) {
+        // printf("recent is maxed");
         recentPages.pop_front();
     }
 }

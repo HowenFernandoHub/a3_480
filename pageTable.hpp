@@ -16,7 +16,8 @@ class PageTable
         PageTable(unsigned int, unsigned int*);
         Level* rootLevel;
         unsigned int levelCount;
-        unsigned int vpnNumNBits;
+        unsigned int addressCount;
+        unsigned int vpnNumBits;
         unsigned int pageSizeBytes;
         unsigned int countPageTableHits;
         unsigned int countTlbHits;
