@@ -114,7 +114,6 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable,
                         bool v2p, bool v2p_tlb, bool vpn2pfn, bool offset)
 {
     unsigned int virtAddr = 0;
-    unsigned int vpn = 0;
     unsigned int frameNum = 0;
     unsigned int physAddr = 0;
     bool tlbHit = false;
@@ -141,6 +140,7 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable,
     physAddr = pTable->appendOffset(frameNum, virtAddr);
 
     report(pTable, virtAddr, physAddr, frameNum, tlbHit, pageTableHit, v2p, v2p_tlb, vpn2pfn, offset);
+    
 }
 
 void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb* cache,
@@ -158,13 +158,12 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
     vpn = virtAddr & cache->vpnMask;
     vpn = vpn >> (MEMORY_SPACE_SIZE - pTable->vpnNumBits);
 
-    cache->updateQueue(vpn);    // update most recently used
-
     // go here if TLB hit
     if (cache->hasMapping(vpn)) {
         frameNum = cache->vpn2pfn[vpn];
         tlbHit = true;
         pTable->countTlbHits++;
+        cache->updateQueue(vpn);    // update most recently used
     }
     // go here if TLB MISS
     else {
@@ -184,23 +183,13 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
             cache->insertMapping(vpn, frameNum);    // update cache
             pTable->countPageTableHits++;
         }
-        
+        cache->updateQueue(vpn);    // update most recently used
     }
     
     physAddr = pTable->appendOffset(frameNum, virtAddr);
 
     report(pTable, virtAddr, physAddr, frameNum, tlbHit, pageTableHit, v2p, v2p_tlb, vpn2pfn, offset);
 
-    std::map<unsigned int, unsigned int>::iterator iter;
-    // printf("CACHE: \n");
-    for (iter = cache->vpn2pfn.begin(); iter != cache->vpn2pfn.end(); iter++) {
-        // std::cout << iter->first << " => " << iter->second << '\n';
-    }   
-
-    // printf("QUEUE: \n");
-    for (int i = 0; i < cache->recentPages.size(); i++) {
-        // std::cout << cache->recentPages[i];
-    }
 }
 
 
@@ -275,11 +264,6 @@ int main(int argc, char **argv)
 
     PageTable pTable(numLevels, bitsInLevel, vpnNumBits);
     tlb* cache = new tlb(vpnNumBits, cFlag);    
-
-
-    /********* TEST OF PAGE_INSERT AND PAGE_LOOKUP *********/
-    // unsigned int addArr [] = {0xfefffec2, 0xfe0123c2, 0xfefffec2, 0xfe0123c2};
-
 
     // deal with output mode
     if (strcmp(oFlag, "bitmasks") == 0) {

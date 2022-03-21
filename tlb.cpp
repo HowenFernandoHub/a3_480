@@ -69,10 +69,6 @@ void tlb::updateQueue(unsigned int recentVpn)
     recentPages.push_back(recentVpn);
     
     if (recentPages.size() > MAX_QUEUE_SIZE) {
-        // printf("recent is maxed");
-        if (hasMapping(recentPages.front())) {
-            vpn2pfn.erase(recentPages.front());     // erase least recently used
-        }
         recentPages.pop_front();
     }
 }
