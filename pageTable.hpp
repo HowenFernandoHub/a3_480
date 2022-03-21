@@ -17,6 +17,7 @@ class PageTable
         Level* rootLevel;
         unsigned int levelCount;
         unsigned int addressCount;
+        unsigned int numBytes;
         unsigned int frameCount;
         unsigned int vpnNumBits;
         unsigned int pageSizeBytes;

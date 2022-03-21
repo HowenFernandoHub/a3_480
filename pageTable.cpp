@@ -1,13 +1,14 @@
 #include "pageTable.hpp"
-
+#define BITS_IN_BYTE 8
 
 // constructor
 PageTable::PageTable(unsigned int numLevels, unsigned int bitsInLevel[], int vpnNumBits)
 {    
     addressCount = 0;
     frameCount = 0;
+    numBytes = 0;
     this->vpnNumBits = vpnNumBits;
-    pageSizeBytes = (MEMORY_SPACE_SIZE - vpnNumBits) / 8;
+    pageSizeBytes = (unsigned int)pow(2, (vpnNumBits - BITS_IN_BYTE));
     countTlbHits = 0;
     countPageTableHits = 0;
 
