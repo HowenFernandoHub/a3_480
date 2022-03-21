@@ -109,7 +109,7 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
         vpn = vpn >> (MEMORY_SPACE_SIZE - pTable->vpnNumBits);
 
         cache->updateQueue(vpn);    // update most recently used
-        printf("we are using tlb\n");
+        // printf("we are using tlb\n");
 
         // go here if TLB hit
         if (cache->hasMapping(vpn)) {
