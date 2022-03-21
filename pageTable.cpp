@@ -22,6 +22,7 @@ PageTable::PageTable(unsigned int numLevels, unsigned int bitsInLevel[], int vpn
     fillMaskArr(maskArr, bitsInLevel, numLevels);
     fillShiftArr(shiftArr, bitsInLevel, numLevels);
     rootLevel = new Level(0, this);        // 'this' is pointer to this PageTable
+    numBytes += sizeof(Level) /** entryCountArr[0]*/;       // incrementing numBytes by size of Level * number of possible Levels in nextLevelArr
 }
 
 void PageTable::fillEntryCountArr(unsigned int entryCountArr[], unsigned int bitsInLvl[], unsigned int numLvls)
@@ -123,6 +124,7 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
         // go here if mapPtr array hasn't been instantiated
         if (lvlPtr->mapPtr == nullptr) {
             lvlPtr->setMapPtr();    // instantiate mapPtr
+            numBytes += sizeof(Map) * entryCountArr[lvlPtr->currDepth];
         }
         lvlPtr->mapPtr[pageNum].setFrameNum(currFrameNum);
         lvlPtr->mapPtr[pageNum].setValid();
@@ -138,6 +140,7 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
             Level* newLevel = new Level(lvlPtr->currDepth + 1, this);
             lvlPtr->nextLevel[pageNum] = newLevel;
             pageInsert(newLevel, virtualAddress);
+            numBytes += sizeof(Level) * entryCountArr[lvlPtr->currDepth];
         }
     }
 }

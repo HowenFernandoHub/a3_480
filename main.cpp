@@ -272,7 +272,7 @@ int main(int argc, char **argv)
     } else if (strcmp(oFlag, "summary") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, false, false);
         report_summary(pTable.pageSizeBytes, pTable.countTlbHits,
-                        pTable.countPageTableHits, pTable.addressCount, pTable.frameCount, 200);    // FIXME: FINISH THIS!
+                        pTable.countPageTableHits, pTable.addressCount, pTable.frameCount, pTable.numBytes);    // FIXME: FINISH THIS!
     } else {
         std::cout << "Invalid Output Mode" << std::endl;
         exit(EXIT_FAILURE);
