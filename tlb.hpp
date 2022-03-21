@@ -17,7 +17,7 @@ class tlb
         int capacity;
         unsigned int vpnMask;
         void setVpnMask(int vpnNumBits);
-        bool hasMapping(unsigned int vpn, unsigned int frameNum);
+        bool hasMapping(unsigned int vpn);
         void insertMapping(unsigned int vpn, unsigned int frameNum);
         void updateQueue(unsigned int recentVpn);
         bool queueContains(unsigned int vpn);

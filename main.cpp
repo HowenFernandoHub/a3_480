@@ -107,21 +107,29 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
     cache->updateQueue(vpn);    // update most recently used
 
     // go here if TLB hit
-    if (cache->hasMapping(vpn, frameNum)) {
+    if (cache->hasMapping(vpn)) {
         frameNum = cache->vpn2pfn[vpn];
         tlbHit = true;
+        pTable->countTlbHits++;
     }
     // go here if TLB MISS
     else {
         frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
-        if (frame == NULL) {
-            // go here if VPN not already in tree
+        if (frame == nullptr) {
+            // go here if PageTable MISS
+            pageTableHit = false;
             pTable->pageInsert(pTable->rootLevel, virtAddr);
             frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
-            pageTableHit = false;
+            frameNum = frame->getFrameNum();
+            cache->insertMapping(vpn, frameNum);    // update cache
         }
-        frameNum = frame->getFrameNum();
-        cache->insertMapping(vpn, frameNum);    // update cache
+        else {
+            // go here if PageTable HIT
+            frameNum = frame->getFrameNum();
+            cache->insertMapping(vpn, frameNum);    // update cache
+            pTable->countPageTableHits;
+        }
+        
     }
     physAddr = pTable->appendOffset(frameNum, virtAddr);
 
@@ -140,7 +148,18 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
     }
     else if (offset) {
         hexnum(pTable->getOffset(virtAddr));
+    }
+
+    std::map<unsigned int, unsigned int>::iterator iter;
+    // printf("CACHE: \n");
+    for (iter = cache->vpn2pfn.begin(); iter != cache->vpn2pfn.end(); iter++) {
+        // std::cout << iter->first << " => " << iter->second << '\n';
     }   
+
+    // printf("QUEUE: \n");
+    for (int i = 0; i < cache->recentPages.size(); i++) {
+        // std::cout << cache->recentPages[i];
+    }
 }
 
 
@@ -194,17 +213,18 @@ int main(int argc, char **argv)
 
     unsigned int numLevels = (argc - 1) - optind;
     unsigned int bitsInLevel[numLevels];
-    int totNumBits = 0;
+    int vpnNumBits = 0;
+
     for (int i = 0; i < numLevels; i++) {
         bitsInLevel[i] = atoi(argv[optind + i + 1]);
-        totNumBits += bitsInLevel[i];
+        vpnNumBits += bitsInLevel[i];
     }
 
     FILE* traceFile = readTraceFile(argc, argv);
     p2AddrTr trace;
 
-    PageTable pTable(numLevels, bitsInLevel);
-    tlb* cache = new tlb(totNumBits, cFlag);    
+    PageTable pTable(numLevels, bitsInLevel, vpnNumBits);
+    tlb* cache = new tlb(vpnNumBits, cFlag);    
 
 
     /********* TEST OF PAGE_INSERT AND PAGE_LOOKUP *********/
@@ -225,7 +245,8 @@ int main(int argc, char **argv)
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, false, true);
     } else if (strcmp(oFlag, "summary") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, false, false);
-        // report_summary();    FIXME: FINISH THIS!
+        report_summary(pTable.pageSizeBytes, pTable.countTlbHits,
+                        pTable.countPageTableHits, pTable.addressCount, 400, 200);    // FIXME: FINISH THIS!
     } else {
         std::cout << "Invalid Output Mode" << std::endl;
         exit(EXIT_FAILURE);

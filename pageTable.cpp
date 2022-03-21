@@ -2,24 +2,21 @@
 
 
 // constructor
-PageTable::PageTable(unsigned int numLevels, unsigned int bitsInLevel[])
-{
-    unsigned int totNumBits = 0;
+PageTable::PageTable(unsigned int numLevels, unsigned int bitsInLevel[], int vpnNumBits)
+{    
     addressCount = 0;
-
-    for (int i = 0; i < numLevels; i++) {
-        totNumBits += bitsInLevel[i];
-    }
-
-    vpnNumBits = totNumBits;
+    frameCount = 0;
+    this->vpnNumBits = vpnNumBits;
     pageSizeBytes = (MEMORY_SPACE_SIZE - vpnNumBits) / 8;
+    countTlbHits = 0;
+    countPageTableHits = 0;
 
     levelCount = numLevels;
     entryCountArr = new unsigned int[numLevels];
     maskArr = new unsigned int[numLevels];
     shiftArr = new unsigned int[numLevels];
-    setOffsetMask(totNumBits);
-    setOffsetShift(totNumBits);
+    setOffsetMask(vpnNumBits);
+    setOffsetShift(vpnNumBits);
     currFrameNum = 0;
     fillEntryCountArr(entryCountArr, bitsInLevel, levelCount);
     fillMaskArr(maskArr, bitsInLevel, numLevels);
@@ -155,18 +152,18 @@ Map* PageTable::pageLookup(Level* lvlPtr, unsigned int virtualAddress)
     if (lvlPtr->currDepth == levelCount - 1) {
         // // go here if mapPtr not set
         if (lvlPtr->mapPtr == nullptr) {
-            return NULL;
+            return nullptr;
         }
         // go here if map invalid
         if (!lvlPtr->mapPtr[pageNum].valid) {
-            return NULL;
+            return nullptr;
         }
         // returns this if page hit
         return &(lvlPtr->mapPtr[pageNum]);
     } 
     // go here if lvlPtr is interior node
-    if (lvlPtr->nextLevel[pageNum] == NULL) {
-        return NULL;
+    if (lvlPtr->nextLevel[pageNum] == nullptr) {
+        return nullptr;
     }
 
     pageLookup(lvlPtr->nextLevel[pageNum], virtualAddress);     // recursion to next level

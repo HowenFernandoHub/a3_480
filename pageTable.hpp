@@ -13,10 +13,11 @@
 class PageTable
 {
     public:
-        PageTable(unsigned int, unsigned int*);
+        PageTable(unsigned int, unsigned int*, int);
         Level* rootLevel;
         unsigned int levelCount;
         unsigned int addressCount;
+        unsigned int frameCount;
         unsigned int vpnNumBits;
         unsigned int pageSizeBytes;
         unsigned int countPageTableHits;
