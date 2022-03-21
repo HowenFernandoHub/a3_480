@@ -10,6 +10,12 @@ tlb::tlb(int vpnNumBits, int capacity)
 }
 
 
+bool tlb::usingTlb()
+{
+    return this->capacity != 0;
+}
+
+
 void tlb::setVpnMask(int vpnNumBits)
 {
     this->vpnMask = 0;

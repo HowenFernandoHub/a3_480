@@ -15,6 +15,7 @@ class tlb
         std::map<unsigned int, unsigned int> vpn2pfn;   // k: vpn, v: pfn
         std::deque<unsigned int> recentPages;    // always be size 10
         int capacity;
+        bool usingTlb();
         unsigned int vpnMask;
         void setVpnMask(int vpnNumBits);
         bool hasMapping(unsigned int vpn);

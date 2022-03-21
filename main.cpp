@@ -99,20 +99,47 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
     bool tlbHit = false;
     bool pageTableHit = true;   // default true, conditional check if not
     Map* frame;
-    
-    virtAddr = trace->addr;
-    vpn = virtAddr & cache->vpnMask;
-    vpn = vpn >> (MEMORY_SPACE_SIZE - pTable->vpnNumBits);
 
-    cache->updateQueue(vpn);    // update most recently used
+    virtAddr = trace->addr;     // assign virtAddr a value
 
-    // go here if TLB hit
-    if (cache->hasMapping(vpn)) {
-        frameNum = cache->vpn2pfn[vpn];
-        tlbHit = true;
-        pTable->countTlbHits++;
+    // go here if tlb has capacity > 0
+    if (cache->usingTlb()) {
+        
+        vpn = virtAddr & cache->vpnMask;
+        vpn = vpn >> (MEMORY_SPACE_SIZE - pTable->vpnNumBits);
+
+        cache->updateQueue(vpn);    // update most recently used
+        printf("we are using tlb\n");
+
+        // go here if TLB hit
+        if (cache->hasMapping(vpn)) {
+            frameNum = cache->vpn2pfn[vpn];
+            tlbHit = true;
+            pTable->countTlbHits++;
+        }
+        // go here if TLB MISS
+        else {
+            frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
+            if (frame == nullptr) {
+                // go here if PageTable MISS
+                pageTableHit = false;
+                pTable->pageInsert(pTable->rootLevel, virtAddr);
+                frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
+                frameNum = frame->getFrameNum();
+                cache->insertMapping(vpn, frameNum);    // update cache
+                pTable->frameCount++;
+            }
+            else {
+                // go here if PageTable HIT
+                frameNum = frame->getFrameNum();
+                cache->insertMapping(vpn, frameNum);    // update cache
+                pTable->countPageTableHits++;
+            }
+            
+        }
     }
-    // go here if TLB MISS
+
+    // go here if not using tlb
     else {
         frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
         if (frame == nullptr) {
@@ -121,16 +148,15 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
             pTable->pageInsert(pTable->rootLevel, virtAddr);
             frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
             frameNum = frame->getFrameNum();
-            cache->insertMapping(vpn, frameNum);    // update cache
+            pTable->frameCount++;
         }
         else {
             // go here if PageTable HIT
             frameNum = frame->getFrameNum();
-            cache->insertMapping(vpn, frameNum);    // update cache
-            pTable->countPageTableHits;
+            pTable->countPageTableHits++;
         }
-        
     }
+    
     physAddr = pTable->appendOffset(frameNum, virtAddr);
 
     if (v2p) {  // virtual2PhysicalMode
@@ -246,7 +272,7 @@ int main(int argc, char **argv)
     } else if (strcmp(oFlag, "summary") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, false, false);
         report_summary(pTable.pageSizeBytes, pTable.countTlbHits,
-                        pTable.countPageTableHits, pTable.addressCount, 400, 200);    // FIXME: FINISH THIS!
+                        pTable.countPageTableHits, pTable.addressCount, pTable.frameCount, 200);    // FIXME: FINISH THIS!
     } else {
         std::cout << "Invalid Output Mode" << std::endl;
         exit(EXIT_FAILURE);
