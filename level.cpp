@@ -10,6 +10,9 @@ Level::Level(int depth, PageTable* tablePtr)
 {
     currDepth = depth;
     pTable = tablePtr;
+    setNextLevel();
+    setNextLevelNull();     // set zeroeth levels netLevel[] to all nulls
+    mapPtr = nullptr;
 }
 
 
@@ -21,16 +24,16 @@ void Level::setNextLevel()
 void Level::setNextLevelNull()
 {
     for (int i = 0; i < pTable->entryCountArr[currDepth]; i++) {
-        nextLevel[i] = NULL;
+        nextLevel[i] = nullptr;
     }
 }
 
 void Level::setMapPtr()
 {
-    mapPtr = new Map[pTable->entryCountArr[currDepth]];
+    this->mapPtr = new Map[pTable->entryCountArr[currDepth]];
 }
 
 void Level::setCurrDepth(int newDepth)
 {
-    currDepth = newDepth;
+    this->currDepth = newDepth;
 }

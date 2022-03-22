@@ -5,7 +5,7 @@ class Map
 {
     public:
         Map();
-        void setFrameNum(int frameNum);
+        void setFrameNum(int frameNumber);
         void setValid();
         unsigned int getFrameNum();     
         bool valid;   

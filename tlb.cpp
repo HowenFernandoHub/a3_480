@@ -1,10 +1,18 @@
 #include "tlb.hpp"
+#include <stack>
+
 
 
 tlb::tlb(int vpnNumBits, int capacity)
 {
     this->capacity = capacity;
     setVpnMask(vpnNumBits);
+}
+
+
+bool tlb::usingTlb()
+{
+    return this->capacity != 0;
 }
 
 
@@ -26,12 +34,41 @@ bool tlb::hasMapping(unsigned int vpn)
 
 void tlb::insertMapping(unsigned int vpn, unsigned int frameNum)
 {
-    // tlb not at capacity, safe to insert
-    if (vpn2pfn.size() < capacity) {
-        vpn2pfn[vpn] = frameNum;
+    // if tlb at capacity need to erase the least recent used address
+    if (vpn2pfn.size() >= capacity) {
+        vpn2pfn.erase(recentPages.front());     // erase least recently used
+        recentPages.pop_front();
     }
-    else {
-        // FIXME: finish what to do when at capacity
-        //  Time for me to do some stuff finally
+    
+    vpn2pfn[vpn] = frameNum;
+}
+
+bool tlb::queueContains(unsigned int vpn)
+{
+    for (int i = 0; i < recentPages.size(); i++) {
+        if (recentPages[i] == vpn) return true;
+    }
+    return false;
+}
+
+void tlb::eraseVpnFromQueue(unsigned int vpn)
+{
+    for (int i = 0; i < recentPages.size(); i++) {
+        if (recentPages[i] == vpn) {
+            recentPages.erase(recentPages.begin() + i);
+        }
+    }
+}
+
+void tlb::updateQueue(unsigned int recentVpn)
+{
+    if (queueContains(recentVpn)) {     // if queue contains vpn update vpn to most recent
+        eraseVpnFromQueue(recentVpn);
+    }
+    
+    recentPages.push_back(recentVpn);
+    
+    if (recentPages.size() > MAX_QUEUE_SIZE) {
+        recentPages.pop_front();
     }
 }

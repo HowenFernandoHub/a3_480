@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include "Map.hpp"
+#include <math.h>
 
 class PageTable;
 
@@ -14,7 +15,7 @@ class Level
         Level(int, PageTable*);
         Level** nextLevel;        // FIXME: use new in constructor
         Map* mapPtr;
-        int currDepth;
+        unsigned int currDepth;
         PageTable* pTable;
         void setNextLevel();
         void setNextLevelNull();

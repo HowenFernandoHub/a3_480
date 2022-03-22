@@ -14,7 +14,7 @@ CXXFLAGS=-std=c++11
 # First target is the one executed if you just type make
 # make target specifies a specific target
 # $^ is an example of a special variable.  It substitutes all dependencies
-pagingwithtlb : main.o pageTable.o Map.o level.o tlb.o tracereader.o
+pagingwithtlb : main.o pageTable.o Map.o level.o tlb.o tracereader.o output_mode_helpers.o
 	$(CXX) $(CXXFLAGS) -g -o pagingwithtlb $^
 
 main.o : main.cpp
@@ -33,6 +33,9 @@ tlb.o : tlb.cpp tlb.hpp
 	$(CXX) $(CXXFLAGS) -g -c $<
 
 tracereader.o : tracereader.c tracereader.h
+	$(CXX) $(CXXFLAGS) -g -c $<
+
+output_mode_helpers.o : output_mode_helpers.c output_mode_helpers.h
 	$(CXX) $(CXXFLAGS) -g -c $<
 
 clean :

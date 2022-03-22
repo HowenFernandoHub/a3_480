@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/pagingwithtlb",
-            "args": ["trace.tr", "8", "8", "8"],
+            "args": ["-n", "100000", "-o", "summary", "trace.tr", "20"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

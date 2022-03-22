@@ -1,38 +1,38 @@
 #include "pageTable.hpp"
 
-
 // constructor
-PageTable::PageTable(int numLevels, int bitsInLevel[])
-{
-    int totNumBits = 0;
-
-    for (int i = 0; i < numLevels; i++) {
-        totNumBits += bitsInLevel[i];
-    }
+PageTable::PageTable(unsigned int numLevels, unsigned int bitsInLevel[], int vpnNumBits)
+{    
+    addressCount = 0;
+    frameCount = 0;
+    numBytes = 0;
+    this->vpnNumBits = vpnNumBits;
+    pageSizeBytes = (unsigned int)pow(2, (MEMORY_SPACE_SIZE - vpnNumBits));
+    countTlbHits = 0;
+    countPageTableHits = 0;
 
     levelCount = numLevels;
-    entryCountArr = new int[numLevels];
+    entryCountArr = new unsigned int[numLevels];
     maskArr = new unsigned int[numLevels];
     shiftArr = new unsigned int[numLevels];
-    setOffsetMask(totNumBits);
-    setOffsetShift(totNumBits);
+    setOffsetMask(vpnNumBits);
+    setOffsetShift(vpnNumBits);
     currFrameNum = 0;
     fillEntryCountArr(entryCountArr, bitsInLevel, levelCount);
     fillMaskArr(maskArr, bitsInLevel, numLevels);
     fillShiftArr(shiftArr, bitsInLevel, numLevels);
     rootLevel = new Level(0, this);        // 'this' is pointer to this PageTable
-    rootLevel->setNextLevel();
-    rootLevel->setNextLevelNull();    // set zeroeth levels netLevel[] to all nulls
+    numBytes += sizeof(Level) /** entryCountArr[0]*/;       // incrementing numBytes by size of Level * number of possible Levels in nextLevelArr
 }
 
-void PageTable::fillEntryCountArr(int entryCountArr[], int bitsInLvl[], int numLvls)
+void PageTable::fillEntryCountArr(unsigned int entryCountArr[], unsigned int bitsInLvl[], unsigned int numLvls)
 {
     for (int i = 0; i < numLvls; i++) {
         entryCountArr[i] = pow(2, bitsInLvl[i]);
     }
 }
 
-void PageTable::fillMaskArr(unsigned int maskArr[], int bitsInLvl[], int numLevels)
+void PageTable::fillMaskArr(unsigned int maskArr[], unsigned int bitsInLvl[], unsigned int numLevels)
 {
     unsigned int mask;
     for (int i = 0; i < numLevels; i++) {
@@ -65,7 +65,7 @@ unsigned int PageTable::reverseBits(unsigned int num)
     return tmp;
 }
 
-void PageTable::shiftMaskArr(unsigned int mask[], int bitsInLvl[], int numLevels)
+void PageTable::shiftMaskArr(unsigned int mask[], unsigned int bitsInLvl[], unsigned int numLevels)
 {
     // shift mask arr
     int shiftAmmount = 0;
@@ -75,7 +75,7 @@ void PageTable::shiftMaskArr(unsigned int mask[], int bitsInLvl[], int numLevels
     }
 }
 
-void PageTable::fillShiftArr(unsigned int shiftArr[], int bitsInLvl[], int numLevels)
+void PageTable::fillShiftArr(unsigned int shiftArr[], unsigned int bitsInLvl[], unsigned int numLevels)
 {
     int shift = MEMORY_SPACE_SIZE;
     for (int i = 0; i < numLevels; i++) {
@@ -84,17 +84,17 @@ void PageTable::fillShiftArr(unsigned int shiftArr[], int bitsInLvl[], int numLe
     }
 }
 
-void PageTable::setOffsetMask(int vpnNumBits)
+void PageTable::setOffsetMask(unsigned int vpnNumBits)
 {
     this->offsetMask = 0;
-    int numBitsOffset = MEMORY_SPACE_SIZE - vpnNumBits;
+    unsigned int numBitsOffset = MEMORY_SPACE_SIZE - vpnNumBits;
 
     for (int i = 0; i < numBitsOffset; i++) {
         this->offsetMask += pow(2, i);
     }
 }
 
-void PageTable::setOffsetShift(int vpnNumBits)
+void PageTable::setOffsetShift(unsigned int vpnNumBits)
 {
     this->offsetShift = MEMORY_SPACE_SIZE - vpnNumBits;
 }
@@ -119,29 +119,28 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
     unsigned int shift = shiftArr[lvlPtr->currDepth];
     unsigned int pageNum = virtualAddressToPageNum(virtualAddress, mask, shift);
 
-    printf("PageNum%d: %0x\n", lvlPtr->currDepth, pageNum);
-
     // go here if lvlPtr is a leaf node
     if (lvlPtr->currDepth == levelCount - 1) {
-        lvlPtr->setMapPtr();
+        // go here if mapPtr array hasn't been instantiated
+        if (lvlPtr->mapPtr == nullptr) {
+            lvlPtr->setMapPtr();    // instantiate mapPtr
+            numBytes += sizeof(Map) * entryCountArr[lvlPtr->currDepth];
+        }
         lvlPtr->mapPtr[pageNum].setFrameNum(currFrameNum);
         lvlPtr->mapPtr[pageNum].setValid();
-        printf("Frame Num: %d\n", currFrameNum);
         currFrameNum++;
     } 
     // go here if lvlPtr is interior node
     else {
         // go here if pageNum at this level has already been set
-        if (lvlPtr->nextLevel[pageNum] != NULL) {
-            printf("Already had a pageNum set: %0x\n", pageNum);
+        if (lvlPtr->nextLevel[pageNum] != nullptr) {
             pageInsert(lvlPtr->nextLevel[pageNum], virtualAddress);
         }
         else {
             Level* newLevel = new Level(lvlPtr->currDepth + 1, this);
-            newLevel->setNextLevel();
-            newLevel->setNextLevelNull();
             lvlPtr->nextLevel[pageNum] = newLevel;
             pageInsert(newLevel, virtualAddress);
+            numBytes += sizeof(Level) * entryCountArr[lvlPtr->currDepth];
         }
     }
 }
@@ -154,24 +153,20 @@ Map* PageTable::pageLookup(Level* lvlPtr, unsigned int virtualAddress)
 
     // go here if lvlPtr is a leaf node
     if (lvlPtr->currDepth == levelCount - 1) {
-        // go here if mapPtr not set
-        if (lvlPtr->mapPtr == NULL) {
-            // printf("MAP NOT FOUND\n");
-            return NULL;
+        // // go here if mapPtr not set
+        if (lvlPtr->mapPtr == nullptr) {
+            return nullptr;
         }
         // go here if map invalid
         if (!lvlPtr->mapPtr[pageNum].valid) {
-            // printf("MAP NOT FOUND\n");
-            return NULL;
+            return nullptr;
         }
-        // page found!
-        printf("MAP FOUND!!!\n");
+        // returns this if page hit
         return &(lvlPtr->mapPtr[pageNum]);
     } 
     // go here if lvlPtr is interior node
-    if (lvlPtr->nextLevel[pageNum] == NULL) {
-        // printf("PAGE %d NOT FOUND\n", lvlPtr->currDepth);
-        return NULL;
+    if (lvlPtr->nextLevel[pageNum] == nullptr) {
+        return nullptr;
     }
 
     pageLookup(lvlPtr->nextLevel[pageNum], virtualAddress);     // recursion to next level

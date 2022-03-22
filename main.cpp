@@ -2,9 +2,14 @@
 #include <fstream>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include "pageTable.hpp"
+#include "output_mode_helpers.h"
 
 #define MEMORY_SPACE_SIZE 32
+#define DEFAULT_NUM_ADDRESSES -1
+#define DEFAULT_CACHE_SIZE 0
+#define DEFAULT_OUTPUT_MODE (char*)"summary"
 
 
 void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFlag)
@@ -26,16 +31,17 @@ void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFl
         switch (opt)
         {
             case 'n':
-                // std::cout << "had p flag" << std::endl;
-                // FIXME: Find way to implement DEFAULT
                 *nFlag = atoi(optarg);
                 break;
             case 'c':
-                // std::cout << "had h flag" << std::endl;
                 *cFlag = atoi(optarg);
+                // check if cFlag is valid
+                if (*cFlag < 0) {
+                    std::cerr << "Cache capacity must be a number, greater than or equal to 0" << std::endl;
+                    exit(EXIT_FAILURE);
+                }
                 break;
             case 'o':
-                // std::cout << "had n flag" << std::endl;
                 *oFlag = optarg;
                 break;
             default:
@@ -57,7 +63,7 @@ void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFl
         bitOption = atoi(argv[i]);
         totBits += bitOption;
         if (bitOption < 1) {
-            std::cerr << "Level " << i << " page table must be at least 1 bit" << std::endl;
+            std::cerr << "Level " << i - optind - 1 << " page table must be at least 1 bit" << std::endl;
             exit(EXIT_FAILURE);
         }
         if (totBits > 28) {
@@ -71,7 +77,7 @@ void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFl
 
 FILE* readTraceFile(int argc, char *argv[])
 {
-    FILE *traceFile;
+    FILE* traceFile;
 
     // check that trace file can be opened
     char *traceFname = argv[optind];
@@ -83,129 +89,201 @@ FILE* readTraceFile(int argc, char *argv[])
     return traceFile;
 }
 
-
-int main(int argc, char **argv)
+void report(PageTable* pTable, unsigned int virtAddr, unsigned int physAddr, unsigned int frameNum,
+             bool tlbHit, bool pageTableHit, bool v2p, bool v2p_tlb, bool vpn2pfn, bool offset)
 {
-    int nFlag;      // how many addresses to read in
-    int cFlag = 0;  // cache capacity (default 0 = no TLB)
-    char *oFlag;
+    if (v2p) {  // virtual2PhysicalMode
+        report_virtual2physical(virtAddr, physAddr);
+    }
+    else if (v2p_tlb) {
+        report_v2pUsingTLB_PTwalk(virtAddr, physAddr, tlbHit, pageTableHit);
+    }
+    else if (vpn2pfn) {
+        unsigned int pages[pTable->levelCount];
+        for (int i = 0; i < pTable->levelCount; i++) {
+            pages[i] = pTable->virtualAddressToPageNum(virtAddr, pTable->maskArr[i], pTable->shiftArr[i]);
+        }
+        report_pagemap(pTable->levelCount, pages, frameNum);
+    }
+    else if (offset) {
+        hexnum(pTable->getOffset(virtAddr));
+    }
+}
 
-    /**
-     * 
-     * NEXT TO DO
-     *  - IMPLEMENT TLB
-     * 
-     * 
-     * IMPLEMENT LEVEL (Junior) COMPLETE
-     * 
-     * 
-     * IMPLEMENT PAGE TABLE (Nathan does .cpp) COMPLETE!
-     *  - levelCount
-     *  - bitmask[i]
-     *  - bitShift[i]
-     *  - entryCount[i]
-     *  - Level *nextLevel[]
-     *  - unsigned int virtualAddressToPageNum(unsigned int virtualAddress, unsigned int mask, unsigned int shift);
-     *  - PageTable (Has pointer to 0 level page tree)
-     *  - Level (struct/class)
-     *      - curr depth
-     *      - pointer to PageTable to access info
-     *  - Map (struct/class)
-     * 
-     * IMPLEMENT MAP COMPLETE
-     * 
-     * INITIALIZE PAGE TABLE LVL 0 COMPLETE
-     *  - all nulls?
-     */
+void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable,
+                        bool v2p, bool v2p_tlb, bool vpn2pfn, bool offset)
+{
+    unsigned int virtAddr = 0;
+    unsigned int frameNum = 0;
+    unsigned int physAddr = 0;
+    bool tlbHit = false;
+    bool pageTableHit = true;   // default true, conditional check if not
+    Map* frame;
 
+    virtAddr = trace->addr;     // assign virtAddr a value
 
-    processCmdLnArgs(argc, argv, &nFlag, &cFlag, &oFlag);
-    int numLevels = (argc - 1) - optind;
-    int bitsInLevel[numLevels];
-    int totNumBits = 0;
-    for (int i = 0; i < numLevels; i++) {
-        bitsInLevel[i] = atoi(argv[optind + i + 1]);
-        totNumBits += bitsInLevel[i];
+    frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
+    if (frame == nullptr) {
+        // go here if PageTable MISS
+        pageTableHit = false;
+        pTable->pageInsert(pTable->rootLevel, virtAddr);
+        frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
+        frameNum = frame->getFrameNum();
+        pTable->frameCount++;
+    }
+    else {
+        // go here if PageTable HIT
+        frameNum = frame->getFrameNum();
+        pTable->countPageTableHits++;
     }
 
-    PageTable pTable(numLevels, bitsInLevel);
-    tlb* cache = new tlb(totNumBits, cFlag);
+    physAddr = pTable->appendOffset(frameNum, virtAddr);
 
-    // for (int i = 0; i < numLevels; i++) {
-    //     printf("Bits Level %d: %d\n", i, bitsInLevel[i]);
-    //     printf("Entry Count %d: %d\n", i, pTable.entryCountArr[i]);
-    //     printf("Mask %d: %0x\n", i, pTable.maskArr[i]);
-    //     printf("Shift %d: %d\n\n", i, pTable.shiftArr[i]);
-    // }
+    report(pTable, virtAddr, physAddr, frameNum, tlbHit, pageTableHit, v2p, v2p_tlb, vpn2pfn, offset);
+    
+}
 
-    sleep(2);      // just so I can check the mask and shift arr vals before printing addresses
-    // exit(0);
-
-    // this might all move to readTraceFile() method
-    FILE* traceF = readTraceFile(argc, argv);
-    p2AddrTr trace;
+void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb* cache,
+                        bool v2p, bool v2p_tlb, bool vpn2pfn, bool offset)
+{
     unsigned int virtAddr = 0;
     unsigned int vpn = 0;
     unsigned int frameNum = 0;
     unsigned int physAddr = 0;
+    bool tlbHit = false;
+    bool pageTableHit = true;   // default true, conditional check if not
     Map* frame;
 
-    /********* TEST OF PAGE_INSERT AND PAGE_LOOKUP *********/
-    // unsigned int addArr [] = {0xfefffec2, 0xfe0123c2, 0xfefffec2, 0xfe0123c2};
+    virtAddr = trace->addr;     // assign virtAddr a value
+    vpn = virtAddr & cache->vpnMask;
+    vpn = vpn >> (MEMORY_SPACE_SIZE - pTable->vpnNumBits);
 
-    // for (int i = 0; i < 4; i ++) {
-    //     virtAddr = addArr[i];
-    //     printf("VAddress: %0x\n", virtAddr);
-    //     vpn = virtAddr & cache->vpnMask;
-    //     // go here if TLB hit
-    //     if (cache->hasMapping(vpn)) {
-    //         printf("Page in TLB!\n");
-    //         frameNum = cache->vpn2pfn[vpn];
-    //     }
-    //     // go here if TLB MISS
-    //     else {
-    //         frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
-    //         if (frame == NULL) {
-    //             // go here if VPN not already in tree
-    //             printf("Page not yet in pTable!\n");
-    //             pTable.pageInsert(pTable.rootLevel, virtAddr);
-    //             frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
-    //         }
-    //         frameNum = frame->getFrameNum();
-    //         cache->vpn2pfn[vpn] = frameNum;     // update cache
-    //     }
-    //     physAddr = pTable.appendOffset(frameNum, virtAddr);
-    //     printf("PAddress: %x\n\n", physAddr);
-    // }
+    // go here if TLB hit
+    if (cache->hasMapping(vpn)) {
+        frameNum = cache->vpn2pfn[vpn];
+        tlbHit = true;
+        pTable->countTlbHits++;
+        cache->updateQueue(vpn);    // update most recently used
+    }
+    // go here if TLB MISS
+    else {
+        frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
+        if (frame == nullptr) {
+            // go here if PageTable MISS
+            pageTableHit = false;
+            pTable->pageInsert(pTable->rootLevel, virtAddr);
+            frame = pTable->pageLookup(pTable->rootLevel, virtAddr);
+            frameNum = frame->getFrameNum();
+            cache->insertMapping(vpn, frameNum);    // update cache
+            pTable->frameCount++;
+        }
+        else {
+            // go here if PageTable HIT
+            frameNum = frame->getFrameNum();
+            cache->insertMapping(vpn, frameNum);    // update cache
+            pTable->countPageTableHits++;
+        }
+        cache->updateQueue(vpn);    // update most recently used
+    }
+    
+    physAddr = pTable->appendOffset(frameNum, virtAddr);
 
+    report(pTable, virtAddr, physAddr, frameNum, tlbHit, pageTableHit, v2p, v2p_tlb, vpn2pfn, offset);
+
+}
+
+
+void readAddresses(FILE* traceFile, p2AddrTr *trace, PageTable* pTable, tlb* cache, int numAddresses,
+                    bool v2p, bool v2p_tlb, bool vpn2pfn, bool offset)
+{
     // read all virtual addresses and insert into tree if not already present
-    while (!feof(traceF)) {
-        if(NextAddress(traceF, &trace))     // traceF: File handle from fOpen
-        {
-            virtAddr = trace.addr;
-            printf("VAddress: %0x\n", virtAddr);
-            vpn = virtAddr & cache->vpnMask;
-            // go here if TLB hit
-            if (cache->hasMapping(vpn)) {
-                printf("Page in TLB!\n");
-                frameNum = cache->vpn2pfn[vpn];
-            }
-            // go here if TLB MISS
-            else {
-                frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
-                if (frame == NULL) {
-                    // go here if VPN not already in tree
-                    printf("Page not yet in pTable!\n");
-                    pTable.pageInsert(pTable.rootLevel, virtAddr);
-                    frame = pTable.pageLookup(pTable.rootLevel, virtAddr);
+    if (numAddresses < 0) {
+        while (!feof(traceFile)) {
+            if(NextAddress(traceFile, trace)) {     // traceFile: File handle from fOpen
+                if (cache->usingTlb()) {
+                    processNextAddress(traceFile, trace, pTable, cache, v2p, v2p_tlb, vpn2pfn, offset);
+                } else {
+                    processNextAddress(traceFile, trace, pTable, v2p, v2p_tlb, vpn2pfn, offset);
                 }
-                frameNum = frame->getFrameNum();
-                cache->insertMapping(vpn, frameNum);    // update cache
+                pTable->addressCount++;
             }
-            physAddr = pTable.appendOffset(frameNum, virtAddr);
-            printf("PAddress: %x\n\n", physAddr);
+        }
+    // read only numAddresses number of addresses
+    } else {
+        for (int i = 0; i < numAddresses; i++) {
+            if(NextAddress(traceFile, trace)) {     // traceFile: File handle from fOpen
+                if (cache->usingTlb()) {
+                    processNextAddress(traceFile, trace, pTable, cache, v2p, v2p_tlb, vpn2pfn, offset);
+                } else {
+                    processNextAddress(traceFile, trace, pTable, v2p, v2p_tlb, vpn2pfn, offset);
+                }
+                pTable->addressCount++;
+            }
         }
     }
-
     
+}
+
+
+int main(int argc, char **argv)
+{
+    /**
+     * 
+     * NEXT TO DO
+     *  - IMPLEMENT TLB
+     *  - CACHE REPLACEMENT (Nathan)
+     *  - OUTPUT MODES (Junior)
+     * 
+     * IMPLEMENT LEVEL (Junior) COMPLETE
+     * 
+     * IMPLEMENT PAGE TABLE (Nathan does .cpp) COMPLETE!
+     * 
+     * IMPLEMENT MAP COMPLETE
+     * 
+     * INITIALIZE PAGE TABLE LVL 0 COMPLETE
+     * 
+     */
+
+    int nFlag = DEFAULT_NUM_ADDRESSES;      // how many addresses to read in
+    int cFlag = DEFAULT_CACHE_SIZE;         // cache capacity (default 0 = no TLB)
+    char *oFlag = DEFAULT_OUTPUT_MODE;      // what type of output to show
+
+    processCmdLnArgs(argc, argv, &nFlag, &cFlag, &oFlag);
+
+    unsigned int numLevels = (argc - 1) - optind;
+    unsigned int bitsInLevel[numLevels];
+    int vpnNumBits = 0;
+
+    for (int i = 0; i < numLevels; i++) {
+        bitsInLevel[i] = atoi(argv[optind + i + 1]);
+        vpnNumBits += bitsInLevel[i];
+    }
+
+    FILE* traceFile = readTraceFile(argc, argv);
+    p2AddrTr trace;
+
+    PageTable pTable(numLevels, bitsInLevel, vpnNumBits);
+    tlb* cache = new tlb(vpnNumBits, cFlag);    
+
+    // deal with output mode
+    if (strcmp(oFlag, "bitmasks") == 0) {
+        report_bitmasks(numLevels, pTable.maskArr);
+    } else if (strcmp(oFlag, "virtual2physical") == 0) {
+        readAddresses(traceFile, &trace, &pTable, cache, nFlag, true, false, false, false);
+    } else if (strcmp(oFlag, "v2p_tlb_pt") == 0) {
+        readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, true, false, false);
+        // NEED TO FINISH THIS ONE TOO!
+    } else if (strcmp(oFlag, "vpn2pfn") == 0) {
+        readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, true, false);
+    } else if (strcmp(oFlag, "offset") == 0) {
+        readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, false, true);
+    } else if (strcmp(oFlag, "summary") == 0) {
+        readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, false, false);
+        report_summary(pTable.pageSizeBytes, pTable.countTlbHits,
+                        pTable.countPageTableHits, pTable.addressCount, pTable.frameCount, pTable.numBytes);
+    } else {
+        std::cout << "Invalid Output Mode" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
 }

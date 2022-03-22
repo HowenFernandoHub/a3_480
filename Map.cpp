@@ -7,14 +7,14 @@ Map::Map()
     valid = false;
 }
 
-void Map::setFrameNum(int frameNum)
+void Map::setFrameNum(int frameNumber)
 {
-    this->frameNum = frameNum;
+    this->frameNum = frameNumber;
 }
 
 void Map::setValid()
 {
-    if (!valid) valid = true;
+    this->valid = true;
 }
 
 unsigned int Map::getFrameNum()
