@@ -23,7 +23,7 @@ Level::Level(int depth, PageTable* tablePtr)
     pTable = tablePtr;
     setNextLevel();
     setNextLevelNull();     // set zeroeth levels netLevel[] to all nulls
-    mapPtr = nullptr;
+    mapPtr = nullptr;       // initialize to nullptr to avoid segFault.
 }
 
 // assigns nextLevel to an array of Level*

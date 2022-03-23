@@ -167,7 +167,7 @@ Map* PageTable::pageLookup(Level* lvlPtr, unsigned int virtualAddress)
             return nullptr;
         }
         // go here if map invalid
-        if (!lvlPtr->mapPtr[pageNum].valid) {
+        if (!lvlPtr->mapPtr[pageNum].isValid()) {
             return nullptr;
         }
         // returns this if page hit
