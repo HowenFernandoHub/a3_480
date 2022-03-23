@@ -1,5 +1,9 @@
-#Nathan Schwedock
-#822910056
+# Author: Howen Anthony Fernando, Nathan Schwedock
+# RedIDs: 822914112, 822910056
+# Class: CS480, Spring 2022
+# Assignment #3: Demand Paging with TLB
+# Filename: Makefile
+ 
 # CXX Make variable for compiler
 CXX=g++
 # Make variable for compiler options
