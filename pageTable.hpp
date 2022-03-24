@@ -33,9 +33,10 @@ class PageTable
         // bit arrays and entryCountArr
         unsigned int *maskArr;
         unsigned int *shiftArr;
+        unsigned int *entryCountArr;
+        unsigned int *bitsInLevel;
         unsigned int offsetMask;        // to append onto PFN
         unsigned int offsetShift;
-        unsigned int *entryCountArr;
 
         // pageTable information
         unsigned int levelCount;
@@ -50,19 +51,22 @@ class PageTable
         unsigned int countPageTableHits;
         unsigned int countTlbHits;
 
-        unsigned int getOffset(unsigned int virtAddr);
+        // set array, mask and shift methods
+        void setMaskArr();
+        void shiftMaskArr();      // helper fuction for setMaskArr
+        void setShiftArr();
+        void setEntryCountArr();
+        void setOffsetMask(unsigned int vpnNumBits);
+        void setOffsetShift(unsigned int vpnNumBits);
+
+        // calculation methods
+        unsigned int getOffsetOfAddress(unsigned int virtAddr);
         unsigned int virtualAddressToPageNum(unsigned int virtualAddress, unsigned int mask, unsigned int shift);
+        unsigned int appendOffset(unsigned int frameNum, unsigned int virtualAddress);
+        
+        // page walk methods
         void pageInsert(Level* lvlPtr, unsigned int virtualAddress);
         Map* pageLookup(Level* lvlPtr, unsigned int virtualAddress);
-    
-        
-        void fillMaskArr(unsigned int*, unsigned int*, unsigned int);
-        void shiftMaskArr(unsigned int*, unsigned int*, unsigned int);
-        void fillShiftArr(unsigned int*, unsigned int*, unsigned int);
-        void fillEntryCountArr(unsigned int*, unsigned int*, unsigned int);
-        void setOffsetMask(unsigned int);
-        void setOffsetShift(unsigned int);
-        unsigned int appendOffset(unsigned int frameNum, unsigned int virtualAddress);
         
 };
 

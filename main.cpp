@@ -146,7 +146,7 @@ void report(PageTable* pTable, unsigned int virtAddr, unsigned int physAddr, uns
     }
     else if (offset) {
         // this mode shows the offset vals of each virtAddr
-        hexnum(pTable->getOffset(virtAddr));
+        hexnum(pTable->getOffsetOfAddress(virtAddr));
     }
 }
 
