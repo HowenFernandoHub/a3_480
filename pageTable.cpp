@@ -14,9 +14,9 @@ PageTable::PageTable(unsigned int numLevels, unsigned int bitsInLevel[], int vpn
 {    
     addressCount = 0;
     frameCount = 0;
-    numBytes = 0;
+    numBytesSize = 0;
     this->vpnNumBits = vpnNumBits;
-    pageSizeBytes = (unsigned int)pow(2, (MEMORY_SPACE_SIZE - vpnNumBits));
+    pageSizeBytes = (unsigned int)pow(2, (MEMORY_SPACE_SIZE - vpnNumBits));     // 2^(bits in offset)
     countTlbHits = 0;
     countPageTableHits = 0;
 
@@ -31,7 +31,7 @@ PageTable::PageTable(unsigned int numLevels, unsigned int bitsInLevel[], int vpn
     fillMaskArr(maskArr, bitsInLevel, numLevels);
     fillShiftArr(shiftArr, bitsInLevel, numLevels);
     rootLevel = new Level(0, this);        // 'this' is pointer to this PageTable
-    numBytes += sizeof(Level) /** entryCountArr[0]*/;       // incrementing numBytes by size of Level * number of possible Levels in nextLevelArr
+    numBytesSize += sizeof(Level) /** entryCountArr[0]*/;       // incrementing numBytesSize by size of Level * number of possible Levels in nextLevelArr
 }
 
 void PageTable::fillEntryCountArr(unsigned int entryCountArr[], unsigned int bitsInLvl[], unsigned int numLvls)
@@ -46,32 +46,12 @@ void PageTable::fillMaskArr(unsigned int maskArr[], unsigned int bitsInLvl[], un
     unsigned int mask;
     for (int i = 0; i < numLevels; i++) {
         mask = 0;
-        for (int j = 0; j < bitsInLvl[i]; j++) {
-            mask += pow(2, j);
+        for (int j = 0; j <= bitsInLvl[i]; j++) {
+            mask += (unsigned int)pow(2, (MEMORY_SPACE_SIZE - j));
         }
-        mask = reverseBits(mask);
         maskArr[i] = mask;
     }
     shiftMaskArr(maskArr, bitsInLvl, numLevels);
-}
-
-unsigned int PageTable::reverseBits(unsigned int num)
-{
-    int count = ((__SIZEOF_INT__ * 8) -1); 
-    unsigned int tmp = num;         //  Assign num to the tmp 
-	     
-    num >>= 1; // shift num because LSB already assigned to tmp
-    
-    while(num)
-    {
-       tmp <<= 1;  //shift the tmp because alread have the LSB of num  
-       tmp |= num & 1; // putting the set bits of num
-       num >>= 1; 
-       count--;
-    }
-    
-    tmp <<= count; //when num become zero shift tmp from the remaining counts
-    return tmp;
 }
 
 void PageTable::shiftMaskArr(unsigned int mask[], unsigned int bitsInLvl[], unsigned int numLevels)
@@ -133,7 +113,7 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
         // go here if mapPtr array hasn't been instantiated
         if (lvlPtr->mapPtr == nullptr) {
             lvlPtr->setMapPtr();    // instantiate mapPtr
-            numBytes += sizeof(Map) * entryCountArr[lvlPtr->currDepth];
+            numBytesSize += sizeof(Map) * entryCountArr[lvlPtr->currDepth];
         }
         lvlPtr->mapPtr[pageNum].setFrameNum(currFrameNum);
         lvlPtr->mapPtr[pageNum].setValid();
@@ -149,7 +129,7 @@ void PageTable::pageInsert(Level* lvlPtr, unsigned int virtualAddress)
             Level* newLevel = new Level(lvlPtr->currDepth + 1, this);
             lvlPtr->nextLevel[pageNum] = newLevel;
             pageInsert(newLevel, virtualAddress);
-            numBytes += sizeof(Level) * entryCountArr[lvlPtr->currDepth];
+            numBytesSize += sizeof(Level) * entryCountArr[lvlPtr->currDepth];
         }
     }
 }

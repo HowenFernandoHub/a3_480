@@ -15,36 +15,49 @@
 #include "tlb.hpp"
 #include "tracereader.h"
 
+#define MEMORY_SPACE_SIZE 32
+
+
 
 
 
 class PageTable
 {
     public:
+        // constructor
         PageTable(unsigned int, unsigned int*, int);
+
+        // ptr to root level
         Level* rootLevel;
+        
+        // bit arrays and entryCountArr
+        unsigned int *maskArr;
+        unsigned int *shiftArr;
+        unsigned int offsetMask;        // to append onto PFN
+        unsigned int offsetShift;
+        unsigned int *entryCountArr;
+
+        // pageTable information
         unsigned int levelCount;
         unsigned int addressCount;
-        unsigned int numBytes;
+        unsigned int numBytesSize;
         unsigned int frameCount;
         unsigned int vpnNumBits;
         unsigned int pageSizeBytes;
+        unsigned int currFrameNum;      // for the pageInsert function to know what frameNum to use
+
+        // hit counts
         unsigned int countPageTableHits;
         unsigned int countTlbHits;
-        unsigned int currFrameNum;      // for the pageInsert function to know what frameNum to use
-        unsigned int *maskArr;
-        unsigned int *shiftArr;
-        unsigned int *entryCountArr;
+
         unsigned int getOffset(unsigned int virtAddr);
         unsigned int virtualAddressToPageNum(unsigned int virtualAddress, unsigned int mask, unsigned int shift);
         void pageInsert(Level* lvlPtr, unsigned int virtualAddress);
         Map* pageLookup(Level* lvlPtr, unsigned int virtualAddress);
     
-        unsigned int offsetMask;        // to append onto PFN
-        unsigned int offsetShift;
+        
         void fillMaskArr(unsigned int*, unsigned int*, unsigned int);
         void shiftMaskArr(unsigned int*, unsigned int*, unsigned int);
-        unsigned int reverseBits(unsigned int);
         void fillShiftArr(unsigned int*, unsigned int*, unsigned int);
         void fillEntryCountArr(unsigned int*, unsigned int*, unsigned int);
         void setOffsetMask(unsigned int);
