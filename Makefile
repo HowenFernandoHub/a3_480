@@ -11,13 +11,7 @@ CXX=g++
 #	-g          include information for symbolic debugger e.g. gdb 
 CXXFLAGS=-std=c++11
 
-# Rules format:
-# target : dependency1 dependency2 ... dependencyN
-#     Command to make target, uses default rules if not specified
 
-# First target is the one executed if you just type make
-# make target specifies a specific target
-# $^ is an example of a special variable.  It substitutes all dependencies
 pagingwithtlb : main.o pageTable.o Map.o level.o tlb.o tracereader.o output_mode_helpers.o
 	$(CXX) $(CXXFLAGS) -g -o pagingwithtlb $^
 

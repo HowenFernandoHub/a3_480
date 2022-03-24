@@ -19,7 +19,16 @@
 #define DEFAULT_CACHE_SIZE 0
 #define DEFAULT_OUTPUT_MODE (char*)"summary"
 
-
+/**
+ * @brief - Processes command line args. Checks that appropiate num of cmd ln args.
+ * Checks if number of bits specified for levels are viable.
+ * @param argc - count of cmd ln args
+ * @param argv - arr of cmd ln args as char*
+ * @param nFlag - int* for nFlag. Indicates number of addresses to process
+ * @param cFlag - int* for cFlag. Indicates capacity for TLB
+ * @param oFlag - char** for oFlag. Indicates output mode
+ * 
+ */
 void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFlag)
 {
     // check that the minimum # of cmd-line args are given
@@ -83,6 +92,12 @@ void processCmdLnArgs(int argc, char *argv[], int *nFlag, int *cFlag, char **oFl
 }
 
 
+/**
+ * @brief - Checks if tracefile exists and can be read.
+ * @param argc - count of cmdln args
+ * @param argv - arr of cmdln args
+ * @return FILE* for tracefile
+ */
 FILE* readTraceFile(int argc, char *argv[])
 {
     FILE* traceFile;
@@ -97,13 +112,28 @@ FILE* readTraceFile(int argc, char *argv[])
     return traceFile;
 }
 
+
+/**
+ * @brief - Conditionally calls the report functions ferom output_mode_helpers.c based on output mode chosen
+ * @param pTable - pointer to the pageTable
+ * @param virtAddr - virtual address value
+ * @param physAddr - physical address value translated from virtAddr
+ * @param frameNum - physical frame number for this address
+ * @param tlbHit - true if address was already in TLB, else false
+ * @param pageTableHit - true if address was already in pageTable, else false
+ * @param v2p - true if virtual_to_physical mode
+ * @param v2p_tlb - true if v2p_tlb_pt mode
+ * @param vpn2pfn - true if vpn2pfn mode
+ * @param offset - true if offset mode
+ */
 void report(PageTable* pTable, unsigned int virtAddr, unsigned int physAddr, unsigned int frameNum,
              bool tlbHit, bool pageTableHit, bool v2p, bool v2p_tlb, bool vpn2pfn, bool offset)
 {
     if (v2p) {  // virtual2PhysicalMode
         report_virtual2physical(virtAddr, physAddr);
     }
-    else if (v2p_tlb) {
+    else if (v2p_tlb) {     // v2p_tlb_pt
+        // this mode prints virt to phys translation and tlbHit and pageTableHit info
         report_v2pUsingTLB_PTwalk(virtAddr, physAddr, tlbHit, pageTableHit);
     }
     else if (vpn2pfn) {
@@ -111,14 +141,26 @@ void report(PageTable* pTable, unsigned int virtAddr, unsigned int physAddr, uns
         for (int i = 0; i < pTable->levelCount; i++) {
             pages[i] = pTable->virtualAddressToPageNum(virtAddr, pTable->maskArr[i], pTable->shiftArr[i]);
         }
+        // this mode shows vpn to pfn mapping
         report_pagemap(pTable->levelCount, pages, frameNum);
     }
     else if (offset) {
-        hexnum(pTable->getOffset(virtAddr));
+        // this mode shows the offset vals of each virtAddr
+        hexnum(pTable->getOffsetOfAddress(virtAddr));
     }
 }
 
-void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable,
+/**
+ * @brief - Takes in next address and calculates framenum, physAddr, and pageTableHit.
+ * Checks pageTable to see if there's a hit. Inserts mapping into pageTable if not present.
+ * @param trace - p2AddrTr*. Used for getting the nextAddress to process
+ * @param pTable - pointer to pageTable obj. Holds info about the levels and masks
+ * @param v2p - true if virtual2physical mode
+ * @param v2p_tlb - true if v2p_tlb_pt mode
+ * @param vpn2pfn - true if vpn2pfn mode
+ * @param offset - true if offset mode
+ */
+void processNextAddress(p2AddrTr* trace, PageTable* pTable,
                         bool v2p, bool v2p_tlb, bool vpn2pfn, bool offset)
 {
     unsigned int virtAddr = 0;
@@ -145,13 +187,28 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable,
         pTable->countPageTableHits++;
     }
 
-    physAddr = pTable->appendOffset(frameNum, virtAddr);
+    physAddr = pTable->appendOffset(frameNum, virtAddr);    // calculate physical address
 
+    // call reporting functions
     report(pTable, virtAddr, physAddr, frameNum, tlbHit, pageTableHit, v2p, v2p_tlb, vpn2pfn, offset);
     
 }
 
-void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb* cache,
+/**
+ * @brief - Overloaded version that takes into account the TLB cache.
+ * Takes in next address and calculates framenum, physAddr, tlbHit and pageTableHit.
+ * First checks if mapping in TLB. If not, updates the TLB and checks pageTable to see if there's a hit.
+ * Inserts mapping into pageTable if not present. Regardless of hit status for tlb or pageTable, updates the
+ * recent address queue.
+ * @param trace - p2AddrTr*. Used for getting the nextAddress to process
+ * @param pTable - pointer to pageTable obj. Holds info about the levels and masks
+ * @param cache - tlb* for accessing cache info and mappings
+ * @param v2p - true if virtual2physical mode
+ * @param v2p_tlb - true if v2p_tlb_pt mode
+ * @param vpn2pfn - true if vpn2pfn mode
+ * @param offset - true if offset mode 
+ */
+void processNextAddress(p2AddrTr* trace, PageTable* pTable, tlb* cache,
                         bool v2p, bool v2p_tlb, bool vpn2pfn, bool offset)
 {
     unsigned int virtAddr = 0;
@@ -194,24 +251,38 @@ void processNextAddress(FILE* traceFile, p2AddrTr* trace, PageTable* pTable, tlb
         cache->updateQueue(vpn);    // update most recently used
     }
     
-    physAddr = pTable->appendOffset(frameNum, virtAddr);
+    physAddr = pTable->appendOffset(frameNum, virtAddr);    // calculate physAddr
 
+    // call reporting function
     report(pTable, virtAddr, physAddr, frameNum, tlbHit, pageTableHit, v2p, v2p_tlb, vpn2pfn, offset);
 
 }
 
 
+/**
+ * @brief - called to read address from trace file. If nFlag default mode, will read all addresses.
+ * Else, will read specified numAddresses from nFlag. Also will process addresses based on if usingTlb.
+ * @param traceFile - FILE* for traceFile
+ * @param trace - p2AddrTr*. Used for getting the nextAddress to process. Will be passed to processNextAddress
+ * @param pTable - ptr to pageTable which holds info about masks and levels. Will be passed to processNextAddress
+ * @param cache - tlb ptr with info about cache and recent address queue. Used to determine if tlb is being used
+ * @param numAddresses - how many addresses to process based on nFlag optional cmdln arg
+ * @param v2p - true if virtual2physical mode
+ * @param v2p_tlb - true if v2p_tlb_pt mode
+ * @param vpn2pfn - true if vpn2pfn mode
+ * @param offset - true if offset mode 
+ */
 void readAddresses(FILE* traceFile, p2AddrTr *trace, PageTable* pTable, tlb* cache, int numAddresses,
                     bool v2p, bool v2p_tlb, bool vpn2pfn, bool offset)
 {
     // read all virtual addresses and insert into tree if not already present
-    if (numAddresses < 0) {
+    if (numAddresses == DEFAULT_NUM_ADDRESSES) {
         while (!feof(traceFile)) {
             if(NextAddress(traceFile, trace)) {     // traceFile: File handle from fOpen
                 if (cache->usingTlb()) {
-                    processNextAddress(traceFile, trace, pTable, cache, v2p, v2p_tlb, vpn2pfn, offset);
+                    processNextAddress(trace, pTable, cache, v2p, v2p_tlb, vpn2pfn, offset);
                 } else {
-                    processNextAddress(traceFile, trace, pTable, v2p, v2p_tlb, vpn2pfn, offset);
+                    processNextAddress(trace, pTable, v2p, v2p_tlb, vpn2pfn, offset);
                 }
                 pTable->addressCount++;
             }
@@ -221,9 +292,9 @@ void readAddresses(FILE* traceFile, p2AddrTr *trace, PageTable* pTable, tlb* cac
         for (int i = 0; i < numAddresses; i++) {
             if(NextAddress(traceFile, trace)) {     // traceFile: File handle from fOpen
                 if (cache->usingTlb()) {
-                    processNextAddress(traceFile, trace, pTable, cache, v2p, v2p_tlb, vpn2pfn, offset);
+                    processNextAddress(trace, pTable, cache, v2p, v2p_tlb, vpn2pfn, offset);
                 } else {
-                    processNextAddress(traceFile, trace, pTable, v2p, v2p_tlb, vpn2pfn, offset);
+                    processNextAddress(trace, pTable, v2p, v2p_tlb, vpn2pfn, offset);
                 }
                 pTable->addressCount++;
             }
@@ -232,44 +303,33 @@ void readAddresses(FILE* traceFile, p2AddrTr *trace, PageTable* pTable, tlb* cac
     
 }
 
-
+/**
+ * @brief - process cmd line args. Number of levels, bits in each level and numVpnBits based on cmd line args.
+ * Call readTraceFile to check if traceFile can be opened. Create pageTable and tlb objects. Conditionally readAddresses
+ * based on output mode. Call reporting functions if addresses do not need to be read.
+ */
 int main(int argc, char **argv)
 {
-    /**
-     * 
-     * NEXT TO DO
-     *  - IMPLEMENT TLB
-     *  - CACHE REPLACEMENT (Nathan)
-     *  - OUTPUT MODES (Junior)
-     * 
-     * IMPLEMENT LEVEL (Junior) COMPLETE
-     * 
-     * IMPLEMENT PAGE TABLE (Nathan does .cpp) COMPLETE!
-     * 
-     * IMPLEMENT MAP COMPLETE
-     * 
-     * INITIALIZE PAGE TABLE LVL 0 COMPLETE
-     * 
-     */
-
-    int nFlag = DEFAULT_NUM_ADDRESSES;      // how many addresses to read in
+    int nFlag = DEFAULT_NUM_ADDRESSES;      // how many addresses to read in (default -1 = read ALL addresses)
     int cFlag = DEFAULT_CACHE_SIZE;         // cache capacity (default 0 = no TLB)
-    char *oFlag = DEFAULT_OUTPUT_MODE;      // what type of output to show
+    char *oFlag = DEFAULT_OUTPUT_MODE;      // what type of output to show (default = summary)
 
     processCmdLnArgs(argc, argv, &nFlag, &cFlag, &oFlag);
 
-    unsigned int numLevels = (argc - 1) - optind;
-    unsigned int bitsInLevel[numLevels];
-    int vpnNumBits = 0;
+    unsigned int numLevels = (argc - 1) - optind;   // number of levels for pageTable calculated from mandatory cmd line args
+    unsigned int bitsInLevel[numLevels];            // unsigned int arr holding numBits in each level
+    int vpnNumBits = 0;                             // numBits in VPN total 
 
+    // calculate bitsInLevel and vpnNumBits
     for (int i = 0; i < numLevels; i++) {
         bitsInLevel[i] = atoi(argv[optind + i + 1]);
         vpnNumBits += bitsInLevel[i];
     }
 
-    FILE* traceFile = readTraceFile(argc, argv);
+    FILE* traceFile = readTraceFile(argc, argv);    // check if traceFile can be opened
     p2AddrTr trace;
 
+    // instantiate PageTable and tlb objects
     PageTable pTable(numLevels, bitsInLevel, vpnNumBits);
     tlb* cache = new tlb(vpnNumBits, cFlag);    
 
@@ -280,7 +340,6 @@ int main(int argc, char **argv)
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, true, false, false, false);
     } else if (strcmp(oFlag, "v2p_tlb_pt") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, true, false, false);
-        // NEED TO FINISH THIS ONE TOO!
     } else if (strcmp(oFlag, "vpn2pfn") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, true, false);
     } else if (strcmp(oFlag, "offset") == 0) {
@@ -288,7 +347,7 @@ int main(int argc, char **argv)
     } else if (strcmp(oFlag, "summary") == 0) {
         readAddresses(traceFile, &trace, &pTable, cache, nFlag, false, false, false, false);
         report_summary(pTable.pageSizeBytes, pTable.countTlbHits,
-                        pTable.countPageTableHits, pTable.addressCount, pTable.frameCount, pTable.numBytes);
+                        pTable.countPageTableHits, pTable.addressCount, pTable.frameCount, pTable.numBytesSize);
     } else {
         std::cout << "Invalid Output Mode" << std::endl;
         exit(EXIT_FAILURE);
